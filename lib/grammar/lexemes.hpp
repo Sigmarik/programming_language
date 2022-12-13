@@ -2,9 +2,6 @@
 
 LEXEME(END, ( false ), 1, {})
 
-SIMPLE_LEX(COMMENT_BGN, "/*")
-SIMPLE_LEX(COMMENT_END, "*/")
-
 SIMPLE_LEX(NEXT_STMT, ";")
 SIMPLE_LEX(NEXT_ARG, ",")
 

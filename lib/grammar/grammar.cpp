@@ -47,11 +47,24 @@ LexStack lexify(const char* line) {
 
     CharAddress address = { .line = 1, .index = 0 };
 
+    bool in_comment = false;
+
     for (unsigned int shift = 1; *iter != '\0'; iter += shift, address.index += shift, shift = 1) {
         if (*iter == '\n') {
             ++address.line;
             address.index = 0;
         }
+
+        if (begins_with(iter, "/*")) {
+            in_comment = true;
+            shift = 2;
+        } else if (begins_with(iter, "*/")) {
+            in_comment = false;
+            shift = 2;
+            continue;
+        }
+
+        if (in_comment) continue;
 
         if (!isprint(*iter) || isblank(*iter)) continue;
         else if (isdigit(*iter)) {

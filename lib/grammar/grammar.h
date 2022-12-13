@@ -58,9 +58,13 @@ void LexStack_dtor(LexStack* stack);
 
 void LexStack_push(LexStack* stack, Lex lexeme);
 
-
+/**
+ * @brief Turn source text of the program into a stack of lexemes.
+ * 
+ * @param line 
+ * @return 
+ */
 LexStack lexify(const char* line);
-
 
 #define PARSING_FUNCTION(name) TreeNode* parse_##name(const LexStack stack, int* caret);
 

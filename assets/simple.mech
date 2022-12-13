@@ -1,5 +1,12 @@
 var __ = 0;
 
+/**
+ * @brief Calculate equation discriminant by equation coefficients.
+ * 
+ * @param alpha
+ * @param beta
+ * @param gama
+ */
 def discriminant(alpha, beta, gama) {
     return alpha * alpha + 4 * beta * gama;
 }
