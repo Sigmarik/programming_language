@@ -47,9 +47,10 @@ int main(const int argc, const char** argv) {
     log_init("program_log.html", log_threshold, &errno);
     print_label();
 
-    const char* f_name = get_input_file_name(argc, argv, DEFAULT_FILE_NAME);
+    const char* input_file_name = get_input_file_name(argc, argv, DEFAULT_IN_FILE_NAME);
+    const char* output_file_name = get_output_file_name(argc, argv, DEFAULT_OUT_FILE_NAME);
 
-    const char* text = read_whole(f_name);
+    const char* text = read_whole(input_file_name);
     track_allocation(text, free_variable);
 
     LexStack lexemes = lexify(text);
@@ -66,6 +67,12 @@ int main(const int argc, const char** argv) {
     track_allocation(tree, TreeNode_dtor);
 
     TreeNode_dump(tree, ABSOLUTE_IMPORTANCE);
+
+    FILE* output_file = fopen(output_file_name, "w");
+    _LOG_FAIL_CHECK_(output_file, "error", ERROR_REPORTS, return_clean(EXIT_FAILURE), &errno, ENOENT);
+    track_allocation(output_file, fclose_void);
+
+    TreeNode_export(tree, output_file);
 
     return_clean(errno == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

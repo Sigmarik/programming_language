@@ -203,6 +203,53 @@ void TreeNode_simplify(TreeNode* equation, int* const err_code) {
     rm_useless(equation);
 }
 
+static inline bool fprintf_value(FILE* const file, const TreeNode* node) {
+    bool answer = true;
+
+    if (node->type == N_TYPE_VAR ||
+        node->type == N_TYPE_NVAR ||
+        node->type == N_TYPE_CALL ||
+        node->type == N_TYPE_NFUN ||
+        node->type == N_TYPE_PARAM ||
+        node->type == N_TYPE_ASS)
+        fprintf(file, " %.*s", (int)node->value.name.length, node->value.name.pointer);
+    else if (node->type == N_TYPE_CONST)
+        fprintf(file, " %lg", node->value.dbl);
+    else if (node->type == N_TYPE_OP)
+        fprintf(file, " %s", OP_NAMES[node->value.op]);
+    else answer = false;
+
+    return answer;
+}
+
+static inline void tabulate(FILE* file, int count) {
+    for (int id = 0; id < count; id++) {
+        fputc('\t', file);
+    }
+}
+
+void TreeNode_export(const TreeNode* node, FILE* const file, int nesting) {
+    tabulate(file, nesting);
+
+    if (!node) {
+        fprintf(file, "{}");
+        return;
+    }
+
+    fprintf(file, "{%s, ", NODE_NAMES[node->type]);
+
+    if (!fprintf_value(file, node))
+        fprintf(file, "null");
+
+    fprintf(file, ", \n");
+    TreeNode_export(node->left, file, nesting + 1);
+    fprintf(file, ", \n");
+    TreeNode_export(node->right, file, nesting + 1);
+    fputc('\n', file);
+    tabulate(file, nesting);
+    fputc('}', file);
+}
+
 void recursive_graph_dump(const TreeNode* equation, FILE* file, int* const err_code) {
     _LOG_FAIL_CHECK_(!(TreeNode_get_error(equation) & (~TREE_INV_CONNECTIONS)), "error", ERROR_REPORTS, return, err_code, EINVAL);
     _LOG_FAIL_CHECK_(file, "error", ERROR_REPORTS, return, err_code, ENOENT);
@@ -210,17 +257,7 @@ void recursive_graph_dump(const TreeNode* equation, FILE* file, int* const err_c
     if (!equation || !file) return;
     fprintf(file, "\tV%p [shape=\"box\" label=\"", equation);
     fprintf(file, "%s", NODE_NAMES[equation->type]);
-    if (equation->type == N_TYPE_VAR ||
-        equation->type == N_TYPE_NVAR ||
-        equation->type == N_TYPE_CALL ||
-        equation->type == N_TYPE_NFUN ||
-        equation->type == N_TYPE_PARAM ||
-        equation->type == N_TYPE_ASS)
-        fprintf(file, " %.*s", (int)equation->value.name.length, equation->value.name.pointer);
-    if (equation->type == N_TYPE_CONST)
-        fprintf(file, " %lg", equation->value.dbl);
-    if (equation->type == N_TYPE_OP)
-        fprintf(file, " %s", OP_NAMES[equation->value.op]);
+    fprintf_value(file, equation);
     fprintf(file, "\"]\n");
 
     if (equation->left) {

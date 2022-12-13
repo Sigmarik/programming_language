@@ -89,4 +89,13 @@ TreeNode* TreeNode_diff(const TreeNode* equation, const LimitedString var_name, 
  */
 void TreeNode_simplify(TreeNode* equation, int* const err_code = &errno);
 
+/**
+ * @brief Write the tree to the file in specific format.
+ * 
+ * @param node
+ * @param file
+ * @param nesting amount of tab-s to put before the print. 
+ */
+void TreeNode_export(const TreeNode* node, FILE* const file, int nesting = 0);
+
 #endif
