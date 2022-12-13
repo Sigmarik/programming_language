@@ -1,0 +1,29 @@
+var __ = 0;
+
+def discriminant(alpha, beta, gama) {
+    return alpha * alpha + 4 * beta * gama;
+}
+
+def main() {
+    var k_a = read();
+    var k_b = read();
+    var k_c = read();
+
+    var delta = discriminant(k_a, k_b, k_c);
+
+    if (delta < 0) {
+        __ = print(0);
+    };
+
+    if (delta == 0) {
+        __ = print(1);
+        __ = print(-1 * k_b / (2 * k_a));
+    };
+
+    if (delta > 0) {
+        __ = print(2);
+        var delta_root = sqrt(delta);
+        __ = print((-1 * k_b - delta_root) / (2 * k_a));
+        __ = print((-1 * k_b + delta_root) / (2 * k_a));
+    };
+}
