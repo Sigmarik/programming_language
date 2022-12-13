@@ -1,6 +1,6 @@
 # Equation differentiator & article generator
 ## Description & Purpose
-The program differentiates given equation and exports the result as a scientific article.
+A set of programs for compiling C-style language into virtual processor instructions.
 ## Building
 
 Install necessary packages (ubuntu) *(will install espeak and graphviz)*:
@@ -15,9 +15,9 @@ Clean the project (linux):
 
 `...# make clean`
 
-Differentiate the equation (linux):
+Extract syntax tree from the file (linux):
 
-`...# make run ARGS="equation_source.math"`
+`...# make run ARGS="program_source.mech destination.tree"`
 
 Remove build folders (linux):
 
