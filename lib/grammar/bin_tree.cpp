@@ -250,23 +250,33 @@ void TreeNode_export(const TreeNode* node, FILE* const file, int nesting) {
     fputc('}', file);
 }
 
+//* This is to randomize node color so debug tree would look like a Christmas tree!
+static inline const char* node_color() {
+    int key = rand() % 100;
+    if (key < 90) return "darkgreen";
+    if (key < 93) return "gold";
+    if (key < 96) return "blue";
+    if (key < 101) return "red";
+    return "darkgreen";
+}
+
 void recursive_graph_dump(const TreeNode* equation, FILE* file, int* const err_code) {
     _LOG_FAIL_CHECK_(!(TreeNode_get_error(equation) & (~TREE_INV_CONNECTIONS)), "error", ERROR_REPORTS, return, err_code, EINVAL);
     _LOG_FAIL_CHECK_(file, "error", ERROR_REPORTS, return, err_code, ENOENT);
 
     if (!equation || !file) return;
-    fprintf(file, "\tV%p [shape=\"box\" label=\"", equation);
+    fprintf(file, "\tV%p [style=filled, shape=\"box\" fillcolor=\"%s\" label=\"", equation, node_color());
     fprintf(file, "%s", NODE_NAMES[equation->type]);
     fprintf_value(file, equation);
     fprintf(file, "\"]\n");
 
     if (equation->left) {
         recursive_graph_dump(equation->left, file);
-        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\"]\n", equation, equation->left);
+        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"saddlebrown\"]\n", equation, equation->left);
     }
     if (equation->right) {
         recursive_graph_dump(equation->right, file);
-        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\"]\n", equation, equation->right);
+        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"saddlebrown\"]\n", equation, equation->right);
     }
 }
 
