@@ -20,5 +20,6 @@ static const size_t MAX_FORMULA_LENGTH = 65536;
 
 static const size_t MAX_NAME_LENGTH = 1024;
 static const char DEFAULT_IN_FILE_NAME[] = "simple.mech";
-static const char DEFAULT_OUT_FILE_NAME[] = "out.tree";
+static const char DEFAULT_TREE_FILE_NAME[] = "out.tree";
+static const char DEFAULT_BINARY_FILE_NAME[] = "bin.instr";
 #endif

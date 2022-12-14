@@ -101,6 +101,8 @@ PARSING_FUNCTION(if_cond)
 
 PARSING_FUNCTION(while_cond)
 
+PARSING_FUNCTION(program_tree)
+
 #undef PARSING_FUNCTION
 
 #endif

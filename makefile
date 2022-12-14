@@ -25,29 +25,49 @@ BLD_FOLDER = build
 TEST_FOLDER = test
 ASSET_FOLDER = assets
 
-BLD_NAME = frontend
+FRONT_BLD_NAME = frontend
+BACK_BLD_NAME = backend
+INVERTER_BLD_NAME = restoration
 BLD_VERSION = 0.1
 BLD_PLATFORM = linux
 BLD_TYPE = dev
 BLD_FORMAT = .out
 
-BLD_FULL_NAME = $(BLD_NAME)_v$(BLD_VERSION)_$(BLD_TYPE)_$(BLD_PLATFORM)$(BLD_FORMAT)
+BLD_SUFFIX = _v$(BLD_VERSION)_$(BLD_TYPE)_$(BLD_PLATFORM)$(BLD_FORMAT)
+FRONT_BLD_FULL_NAME = $(FRONT_BLD_NAME)$(BLD_SUFFIX)
+BACK_BLD_FULL_NAME = $(BACK_BLD_NAME)$(BLD_SUFFIX)
+INVERTER_BLD_FULL_NAME = $(INVERTER_BLD_NAME)$(BLD_SUFFIX)
 
-all: asset frontend
+all: asset frontend backend
 
 LIB_OBJECTS = argparser.o logger.o debug.o alloc_tracker.o file_helper.o bin_tree.o speaker.o grammar.o util.o
 
-FRONTEND_OBJECTS = frontend.o frontend_utils.o $(LIB_OBJECTS)
+FRONTEND_OBJECTS = frontend.o frontend_utils.o common_utils.o $(LIB_OBJECTS)
 frontend: $(FRONTEND_OBJECTS)
 	mkdir -p $(BLD_FOLDER)
-	$(CC) $(FRONTEND_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(BLD_FULL_NAME)
+	$(CC) $(FRONTEND_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(FRONT_BLD_FULL_NAME)
+
+BACKEND_OBJECTS = backend.o backend_utils.o common_utils.o $(LIB_OBJECTS)
+backend: $(BACKEND_OBJECTS)
+	mkdir -p $(BLD_FOLDER)
+	$(CC) $(BACKEND_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(BACK_BLD_FULL_NAME)
+
+INVERTER_OBJECTS = inverter.o inverter_utils.o common_utils.o $(LIB_OBJECTS)
+inverter: $(INVERTER_OBJECTS)
+	mkdir -p $(BLD_FOLDER)
+	$(CC) $(INVERTER_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(INVERTER_BLD_FULL_NAME)
 
 asset:
 	mkdir -p $(BLD_FOLDER)
 	cp -r $(ASSET_FOLDER)/. $(BLD_FOLDER)
 
-run:
-	cd $(BLD_FOLDER) && exec ./$(BLD_FULL_NAME) $(ARGS)
+test: tree binary
+
+tree:
+	cd $(BLD_FOLDER) && exec ./$(FRONT_BLD_FULL_NAME) $(ARGS)
+
+binary:
+	cd $(BLD_FOLDER) && exec ./$(BACK_BLD_FULL_NAME) $(ARGS)
 
 install:
 	apt-get install espeak -y
@@ -56,8 +76,23 @@ install:
 frontend.o:
 	$(CC) $(CFLAGS) -c src/frontend.cpp
 
+backend.o:
+	$(CC) $(CFLAGS) -c src/backend.cpp
+
+inverter.o:
+	$(CC) $(CFLAGS) -c src/inverter.cpp
+
 frontend_utils.o:
 	$(CC) $(CFLAGS) -c src/utils/frontend_utils.cpp
+
+backend_utils.o:
+	$(CC) $(CFLAGS) -c src/utils/backend_utils.cpp
+
+inverter_utils.o:
+	$(CC) $(CFLAGS) -c src/utils/inverter_utils.cpp
+
+common_utils.o:
+	$(CC) $(CFLAGS) -c src/utils/common_utils.cpp
 
 alloc_tracker.o:
 	$(CC) $(CFLAGS) -c lib/alloc_tracker/alloc_tracker.cpp

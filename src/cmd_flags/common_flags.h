@@ -1,7 +1,7 @@
 /**
  * @file common_flags.h
  * @author Kudryashov Ilya (kudriashov.it@phystech.edu)
- * @brief Flags present in main program.
+ * @brief Flags present in all programs.
  * @version 0.1
  * @date 2022-10-23
  * 

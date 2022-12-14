@@ -547,3 +547,61 @@ PARSING_FUNCTION(while_cond) {
 
     return TreeNode_new(N_TYPE_WHILE, {}, condition, body);
 }
+
+static inline NodeType node_by_name(LimitedString name) {
+    for (size_t id = 0; id < ARR_SIZE(NODE_NAMES); ++id) {
+        if (begins_with(name.pointer, NODE_NAMES[id])) return (NodeType)id;
+    }
+    return {};
+}
+
+static inline Operator operator_by_name(LimitedString name) {
+    for (size_t id = 0; id < ARR_SIZE(OP_NAMES); ++id) {
+        if (begins_with(name.pointer, OP_NAMES[id])) return (Operator)id;
+    }
+    return {};
+}
+
+PARSING_FUNCTION(program_tree) {
+    VALIDITY_CHECK();
+    CHECK_LEXEME(LEX_BLOCK_BRACK_OP, "Expected opening figure bracket.\n");
+
+    if (CURRENT.type == LEX_BLOCK_BRACK_CL) {
+        ++*caret;
+        return NULL;
+    }
+
+    NodeType type = node_by_name(CURRENT.value.name);
+    CHECK_LEXEME(LEX_NAME, "Node name expected.\n");
+    CHECK_LEXEME(LEX_NEXT_ARG, "Comma separator expected.\n");
+
+    NodeValue value = {};
+
+    if (type == N_TYPE_OP) {
+        value.op = operator_by_name(CURRENT.value.name);
+        CHECK_LEXEME(LEX_NAME, "Operator name expected.\n");
+    } else if (type == N_TYPE_CONST) {
+        int inverter = 1;
+        if (CURRENT.type == LEX_SUB) {
+            inverter = -1;
+            ++*caret;
+        }
+        value.dbl = inverter * CURRENT.value.dbl;
+        CHECK_LEXEME(LEX_NUM, "Constant value expected.\n");
+    } else {
+        value.name = CURRENT.value.name;
+        CHECK_LEXEME(LEX_NAME, "Node value expected.\n");
+    }
+
+    CHECK_LEXEME(LEX_NEXT_ARG, "Comma separator expected.\n");
+
+    TreeNode* left = parse_program_tree(stack, caret);
+
+    CHECK_LEXEME(LEX_NEXT_ARG, "Comma separator expected.\n");
+
+    TreeNode* right = parse_program_tree(stack, caret);
+
+    CHECK_LEXEME(LEX_BLOCK_BRACK_CL, "Closing figure bracket expected.\n");
+
+    return TreeNode_new(type, value, left, right);
+}

@@ -24,7 +24,7 @@
 #include "lib/grammar/bin_tree.h"
 #include "lib/grammar/grammar.h"
 
-#include "utils/frontend_utils.h"
+#include "utils/backend_utils.h"
 
 #define MAIN
 
@@ -39,7 +39,7 @@ int main(const int argc, const char** argv) {
     MAKE_WRAPPER(log_threshold);
 
     ActionTag line_tags[] = {
-        #include "cmd_flags/frontend_flags.h"
+        #include "cmd_flags/backend_flags.h"
     };
     const int number_of_tags = ARR_SIZE(line_tags);
 
@@ -47,8 +47,8 @@ int main(const int argc, const char** argv) {
     log_init("program_log.html", log_threshold, &errno);
     print_label();
 
-    const char* input_file_name = get_input_file_name(argc, argv, DEFAULT_IN_FILE_NAME);
-    const char* output_file_name = get_output_file_name(argc, argv, DEFAULT_TREE_FILE_NAME);
+    const char* input_file_name = get_input_file_name(argc, argv, DEFAULT_TREE_FILE_NAME);
+    const char* output_file_name = get_output_file_name(argc, argv, DEFAULT_BINARY_FILE_NAME);
 
     const char* text = read_whole(input_file_name);
     track_allocation(text, free_variable);
@@ -57,13 +57,13 @@ int main(const int argc, const char** argv) {
     track_allocation(lexemes, LexStack_dtor);
 
     for (size_t id = 0; id < lexemes.size; ++id) {
-        CharAddress address = lexemes.buffer[id].address;
-        _log_printf(STATUS_REPORTS, "status", "Lexeme %s at char %d of line %d.\n", 
-                    LEXEME_NAMES[lexemes.buffer[id].type], (int)address.index, (int)address.line);
+        _log_printf(STATUS_REPORTS, "status", "Lexeme %s detected at char %d of line %d.\n",
+                    LEXEME_NAMES[(int)lexemes.buffer[id].type], 
+                    (int)lexemes.buffer[id].address.index, (int)lexemes.buffer[id].address.line);
     }
 
     int caret = 0;
-    TreeNode* tree = parse_program(lexemes, &caret);
+    TreeNode* tree = parse_program_tree(lexemes, &caret);
     track_allocation(tree, TreeNode_dtor);
 
     TreeNode_dump(tree, ABSOLUTE_IMPORTANCE);
