@@ -8,7 +8,7 @@ var __ = 0;
  * @param gama
  */
 def discriminant(alpha, beta, gama) {
-    return alpha * alpha + 4 * beta * gama;
+    return beta * beta - 4 * alpha * gama;
 }
 
 def main() {

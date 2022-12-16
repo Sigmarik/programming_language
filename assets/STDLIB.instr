@@ -1,0 +1,112 @@
+JMP read__function__end__
+HERE read__function__body__
+IN
+PUSH 1000
+MUL
+RET
+HERE read__function__end__
+
+JMP print__function__end__
+HERE print__function__body__
+OUT
+PUSH '\n'
+OUTC
+RET
+HERE print__function__end__
+
+JMP sqrt__def__end__
+HERE sqrt__function__body__
+	PUSH RAX  # Reserve value of the RAX for restoration
+	MOVE RCX
+
+	PUSH RBX  # Reserve value of the RBX for restoration
+	MOVE RDX
+
+	PUSH RAX  # Update RBX value for called function use.
+	MOVE RBX
+
+	PUSH RAX
+	PUSH 1
+	ADD
+	MOVE RAX
+	MOVE [RBX + 0]  # Value of parameter number.
+
+	PUSH RDX  # Put RBX value (stored in RDX) back.
+	PUSH RCX  # Put RAX value (stored in RCX) back.
+		# Declaration of the "left" variable.
+		PUSH RAX
+		PUSH 1
+		ADD
+		MOVE RAX
+		PUSH 0
+		MOVE [RBX + 1]  # Value of left.
+
+		# Declaration of the "right" variable.
+		PUSH RAX
+		PUSH 1
+		ADD
+		MOVE RAX
+		PUSH [RBX + 0]  # Value of number.
+		MOVE [RBX + 2]  # Value of right.
+
+		HERE _WHILE_std_label_0
+		PUSH 1
+		PUSH [RBX + 1]  # Value of left.
+		PUSH [RBX + 2]  # Value of right.
+		SUB
+		JMPG _cmp_G_std_label_1
+		PUSH 0
+		JMP _cmp_G_std_label_1_end_
+		HERE _cmp_G_std_label_1
+		PUSH 1000
+		HERE _cmp_G_std_label_1_end_
+		PUSH 0
+		JMPE _WHILE_std_label_0_end_
+			# Declaration of the "mid" variable.
+			PUSH RAX
+			PUSH 1
+			ADD
+			MOVE RAX
+			PUSH 2000
+			PUSH [RBX + 1]  # Value of left.
+			PUSH [RBX + 2]  # Value of right.
+			ADD
+			PUSH 1000
+			MUL
+			DIV
+			MOVE [RBX + 3]  # Value of mid.
+
+			PUSH [RBX + 0]  # Value of number.
+			PUSH 1000
+			PUSH [RBX + 3]  # Value of mid.
+			PUSH [RBX + 3]  # Value of mid.
+			MUL
+			DIV
+			JMPLE _cmp_LE_std_label_2
+			PUSH 0
+			JMP _cmp_LE_std_label_2_end_
+			HERE _cmp_LE_std_label_2
+			PUSH 1000
+			HERE _cmp_LE_std_label_2_end_
+			PUSH 0
+			JMPE _IF_std_label_3
+				PUSH [RBX + 3]  # Value of mid.
+				MOVE [RBX + 1]  # Value of left.
+
+			JMP _IF_std_label_3_end_
+			HERE _IF_std_label_3
+				PUSH [RBX + 3]  # Value of mid.
+				MOVE [RBX + 2]  # Value of right.
+
+			HERE _IF_std_label_3_end_
+
+		JMP _WHILE_std_label_0
+		HERE _WHILE_std_label_0_end_
+
+		PUSH [RBX + 1]  # Value of left.
+		MOVE RCX  # Return RBX to its original state.
+		MOVE RAX
+		MOVE RBX
+		PUSH RCX
+		RET
+HERE sqrt__def__end__

@@ -21,14 +21,14 @@ static const size_t TREE_DRAW_REQUEST_SIZE = 512;
 #define TREE_LOG_ASSET_FOLD_NAME "log_assets"
 #define TREE_DUMP_TAG "tree_dump"
 
-#define NODE_TYPE(name) N_TYPE_##name,
+#define NODE_TYPE(name, compile_code) N_TYPE_##name,
 
 enum NodeType {
     #include "node_types.hpp"
 };
 
 #undef NODE_TYPE
-#define NODE_TYPE(name) #name,
+#define NODE_TYPE(name, compile_code) #name,
 
 static const char* const NODE_NAMES[] = {
     #include "node_types.hpp"
@@ -36,14 +36,14 @@ static const char* const NODE_NAMES[] = {
 
 #undef NODE_TYPE
 
-#define EXPR_OPERATOR(name, action, simplification, derivative) OP_##name,
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code) OP_##name,
 
 enum Operator {
     #include "operators.hpp"
 };
 
 #undef EXPR_OPERATOR
-#define EXPR_OPERATOR(name, action, simplification, derivative) #name,
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code) #name,
 
 static const char* const OP_NAMES[] = {
     #include "operators.hpp"

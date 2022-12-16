@@ -526,6 +526,7 @@ PARSING_FUNCTION(if_cond) {
     TreeNode* false_block = NULL;
 
     if (CURRENT.type == LEX_ELSE) {
+        ++*caret;
         CHECK_LEXEME(LEX_BLOCK_BRACK_OP, "Block start expected.\n");
         false_block = parse_block(stack, caret);
         CHECK_LEXEME(LEX_BLOCK_BRACK_CL, "Block end expected.\n");

@@ -42,6 +42,74 @@ static void wrap_constants(TreeNode* equation);
  */
 static void rm_useless(TreeNode* equation);
 
+NameStack NameStack_new(size_t capacity) {
+    NameStack created = {};
+    created.buffer = (VariableAddress*) calloc(capacity, sizeof(*created.buffer));
+    if (!created.buffer) return {};
+    created.capacity = capacity;
+    created.size = 0;
+    return created;
+}
+
+void NameStack_dtor(NameStack* stack) {
+    free(stack->buffer);
+    stack->size = 0;
+    stack->capacity = 0;
+}
+
+void NameStack_dump(const NameStack* stack, unsigned int importance) {
+    log_printf(importance, "ns_dump", "Name stack dump:\n");
+    _log_printf(importance, "ns_dump", "Stack size: %ld\n", (long int)stack->size);
+    for (size_t id = 0; id < stack->size; id++) {
+        VariableAddress address = stack->buffer[id];
+        _log_printf(importance, "ns_dump", "\t[%ld] %.*s at %d\n", (long int)id,
+                    (int)address.name.length, address.name.pointer, address.address);
+    }
+}
+
+void NameStack_flush_address(NameStack* stack) {
+    NameStack_push(stack, {{}, -1, true});
+}
+
+void NameStack_add_variable(NameStack* stack, LimitedString name, bool global) {
+    NameStack_push(stack, {name, stack->size ? stack->buffer[stack->size - 1].address + 1 : 0, global});
+}
+
+void NameStack_push(NameStack* stack, VariableAddress value) {
+    _LOG_FAIL_CHECK_(stack,         "error", ERROR_REPORTS, return, &errno, EINVAL);
+    _LOG_FAIL_CHECK_(stack->buffer, "error", ERROR_REPORTS, return, &errno, EINVAL);
+
+    if (stack->size == stack->capacity) {
+        VariableAddress* new_buf = (VariableAddress*) calloc(stack->capacity * 2, sizeof(*new_buf));
+        if (!new_buf) return;
+        memcpy(new_buf, stack->buffer, stack->capacity * sizeof(*new_buf));
+        stack->capacity *= 2;
+    }
+
+    stack->buffer[stack->size++] = value;
+}
+
+void NameStack_pop(NameStack* stack) {
+    _LOG_FAIL_CHECK_(stack,         "error", ERROR_REPORTS, return, &errno, EINVAL);
+    _LOG_FAIL_CHECK_(stack->buffer, "error", ERROR_REPORTS, return, &errno, EINVAL);
+    _LOG_FAIL_CHECK_(stack->size,   "error", ERROR_REPORTS, return, &errno, ENOENT);
+
+    --stack->size;
+
+    stack->buffer[stack->size] = {};
+}
+VariableAddress NameStack_find(const NameStack* stack, LimitedString name) {
+    _LOG_FAIL_CHECK_(stack,         "error", ERROR_REPORTS, return {}, &errno, EINVAL);
+    _LOG_FAIL_CHECK_(stack->buffer, "error", ERROR_REPORTS, return {}, &errno, EINVAL);
+
+    for (size_t id = stack->size - 1; id != (size_t)-1; --id) {
+        if (!stack->buffer[id].name.pointer) continue;
+        if (!strncmp(stack->buffer[id].name.pointer, name.pointer, name.length)) return stack->buffer[id];
+    }
+
+    return {};
+}
+
 TreeNode* TreeNode_new(NodeType type, NodeValue value, TreeNode* left, TreeNode* right, int* const err_code) {
     TreeNode* equation = (TreeNode*) calloc(1, sizeof(*equation));
     _LOG_FAIL_CHECK_(equation, "error", ERROR_REPORTS, return NULL, err_code, ENOMEM);
@@ -155,7 +223,7 @@ static inline TreeNode* eq_const(double value) {
 }
 
 #define NO_DERIVATIVE TreeNode_copy(equation)
-#define EXPR_OPERATOR(name, action, simplification, derivative) case OP_##name: return derivative;
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code) case OP_##name: return derivative;
 
 TreeNode* TreeNode_diff(const TreeNode* equation, const LimitedString var_name, int* const err_code) {
     if (!equation) return NULL;
@@ -250,6 +318,78 @@ void TreeNode_export(const TreeNode* node, FILE* const file, int nesting) {
     fputc('}', file);
 }
 
+#define COMPILE(child) TreeNode_compile(var_names, child, file, nesting, label_count)
+#define COMPILE_NESTED(child) TreeNode_compile(var_names, child, file, nesting + 1, label_count)
+#define PUT(...) do {                               \
+    for (int count = 0; count < nesting; ++count)   \
+        fputc('\t', file);                          \
+    fprintf(file, __VA_ARGS__);                     \
+} while (0)
+
+#define ADD_NAME(name) do {                             \
+    NameStack_add_variable(var_names, name, !nesting);  \
+    NameStack_dump(var_names, STATUS_REPORTS);          \
+    PUT("PUSH RAX\n");                                  \
+    PUT("PUSH 1\n");                                    \
+    PUT("ADD\n");                                       \
+    PUT("MOVE RAX\n");                                  \
+} while (0)
+
+#define LEFT node->left
+#define RIGHT node->right
+#define GET_VARIABLE(name) NameStack_find(var_names, name)
+#define START_GENERAL_NAMESPACE() \
+    NameStack_push(var_names, {{}, var_names->size ? var_names->buffer[var_names->size - 1].address : -1})
+#define START_LOCAL_NAMESPACE() NameStack_flush_address(var_names)
+#define END_NAMESPACE() do {                                                            \
+    while (var_names->size && var_names->buffer[var_names->size - 1].name.pointer) {    \
+        NameStack_pop(var_names);                                                       \
+    }                                                                                   \
+    if (!var_names->buffer[var_names->size - 1].name.pointer)                           \
+        NameStack_pop(var_names);                                                       \
+} while (0)
+#define UNPIN_STACK_FRAME() do {            \
+    PUT("MOVE RCX  # Unpin stack frame\n"); \
+    PUT("MOVE RBX\n");                      \
+    PUT("PUSH RCX\n\n");                    \
+} while (0)
+#define LABEL_ID (*label_count)
+
+static inline void compile_operator() {
+
+}
+
+#define NODE_TYPE(name, compile_code) case N_TYPE_##name: { {compile_code;} break; }
+
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code) \
+    case OP_##name: { {compilation_code;} break; }
+
+void TreeNode_compile(NameStack* var_names, const TreeNode* node, 
+                      FILE* const file, int nesting, int* label_count) {
+    _LOG_FAIL_CHECK_(var_names,   "error", ERROR_REPORTS, return, &errno, EINVAL);
+    _LOG_FAIL_CHECK_(label_count, "error", ERROR_REPORTS, return, &errno, EINVAL);
+    if (!node) return;
+
+    if (node->type == N_TYPE_OP) {
+        switch(node->value.op) {
+            #include "operators.hpp"
+            default: break;
+        }
+        return;
+    }
+
+    switch(node->type) {
+        #include "node_types.hpp"
+        default: break;
+    }
+}
+
+#undef EXPR_OPERATOR
+#undef NODE_TYPE
+
+#undef LEFT
+#undef RIGHT
+
 //* This is to randomize node color so debug tree would look like a Christmas tree!
 static inline const char* node_color() {
     int key = rand() % 100;
@@ -288,7 +428,7 @@ void recursive_graph_dump(const TreeNode* equation, FILE* file, int* const err_c
 
 static inline double get_value(TreeNode* equation) { return equation->value.dbl; }
 
-#define EXPR_OPERATOR(name, action, simplification, derivative)     \
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code)     \
     case OP_##name: { equation->value.dbl = ( action ); break; }
 
 static void wrap_constants(TreeNode* equation) {
@@ -339,7 +479,8 @@ static inline bool is_constant(const TreeNode* node, const double value) {
 
 #define IS_CONST_V(node, value) is_constant(node, value)
 
-#define EXPR_OPERATOR(name, action, simplification, derivative) case OP_##name: { {simplification;} break; }
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code)   \
+    case OP_##name: { {simplification;} break; }
 
 static void rm_useless(TreeNode* equation) {
     if (!equation || !eq_t_op(equation)) return;

@@ -72,7 +72,18 @@ int main(const int argc, const char** argv) {
     _LOG_FAIL_CHECK_(output_file, "error", ERROR_REPORTS, return_clean(EXIT_FAILURE), &errno, ENOENT);
     track_allocation(output_file, fclose_void);
 
-    TreeNode_export(tree, output_file);
+    fputs("PUSH 1\nMOVE RAX\n", output_file);
+
+    char* stdlib_text = read_whole(STDLIB_NAME);
+    if (stdlib_text) fwrite(stdlib_text, sizeof(*stdlib_text), strlen(stdlib_text), output_file);
+    free(stdlib_text);
+
+    NameStack name_stack = NameStack_new();
+    int label_count = 0;
+    TreeNode_compile(&name_stack, tree, output_file, 0, &label_count);
+    NameStack_dtor(&name_stack);
+
+    fprintf(output_file, "\nEND\n");
 
     return_clean(errno == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

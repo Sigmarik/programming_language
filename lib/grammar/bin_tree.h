@@ -21,6 +21,30 @@
 #include "bin_tree_reports.h"
 #include "lib/file_helper.h"
 
+struct VariableAddress {
+    LimitedString name = {};
+    int address = -1;
+    bool global = true;
+};
+
+struct NameStack {
+    size_t size = 0;
+    size_t capacity = 0;
+    VariableAddress* buffer = NULL;
+};
+
+NameStack NameStack_new(size_t capacity = 128);
+void NameStack_dtor(NameStack* stack);
+
+void NameStack_dump(const NameStack* stack, unsigned int importance);
+
+void NameStack_flush_address(NameStack* stack);
+void NameStack_add_variable(NameStack* stack, LimitedString name, bool global);
+
+void NameStack_push(NameStack* stack, VariableAddress value);
+void NameStack_pop(NameStack* stack);
+VariableAddress NameStack_find(const NameStack* stack, LimitedString name);
+
 union NodeValue {
     LimitedString name;
     Operator op;
@@ -97,5 +121,15 @@ void TreeNode_simplify(TreeNode* equation, int* const err_code = &errno);
  * @param nesting amount of tab-s to put before the print. 
  */
 void TreeNode_export(const TreeNode* node, FILE* const file, int nesting = 0);
+
+/**
+ * @brief Write assembly code to the file.
+ * 
+ * @param node 
+ * @param file 
+ * @param nesting Amount of tabulations to put into the code.
+ */
+void TreeNode_compile(NameStack* var_names, const TreeNode* node, 
+                      FILE* const file, int nesting, int* label_count);
 
 #endif
