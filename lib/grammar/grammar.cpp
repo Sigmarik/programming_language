@@ -129,7 +129,7 @@ PARSING_FUNCTION(def_list) {
     TreeNode* child = NULL;
     while ((child = parse_definition(stack, caret))) {
         if (!node) node = child;
-        else node = TreeNode_new(N_TYPE_DEF_SEQ, {}, node, child);
+        else node = TreeNode_new(N_TYPE_DEFS, {}, node, child);
     }
 
     return node;
@@ -174,21 +174,21 @@ PARSING_FUNCTION(expression) {
 
 static inline bool is_comparison(LexType type) {
     return type == LEX_CMP_EQ ||
-           type == LEX_CMP_G ||
-           type == LEX_CMP_GEQ ||
-           type == LEX_CMP_L ||
-           type == LEX_CMP_LEQ;
+           type == LEX_GT ||
+           type == LEX_GEQ ||
+           type == LEX_LT ||
+           type == LEX_LEQ;
 }
 
 static inline Operator lexeme_to_op(LexType type) {
     switch ((int) type) {
-    case LEX_CMP_EQ:    return OP_CMP_EQUAL;
-    case LEX_CMP_G:     return OP_CMP_G;
-    case LEX_CMP_GEQ:   return OP_CMP_GE;
-    case LEX_CMP_L:     return OP_CMP_L;
-    case LEX_CMP_LEQ:   return OP_CMP_LE;
-    case LEX_AND:       return OP_L_AND;
-    case LEX_LOR:       return OP_L_OR;
+    case LEX_CMP_EQ:    return OP_EQ;
+    case LEX_GT:     return OP_GT;
+    case LEX_GEQ:   return OP_GEQ;
+    case LEX_LT:     return OP_LT;
+    case LEX_LEQ:   return OP_LEQ;
+    case LEX_AND:       return OP_AND;
+    case LEX_LOR:       return OP_OR;
 
     case LEX_ADD:       return OP_ADD;
     case LEX_SUB:       return OP_SUB;
@@ -454,10 +454,10 @@ PARSING_FUNCTION(statement) {
         node = parse_if_cond(stack, caret);
     } else if (CURRENT.type == LEX_WHILE) {
         node = parse_while_cond(stack, caret);
-    } else if (CURRENT.type == LEX_RETURN) {
+    } else if (CURRENT.type == LEX_RET) {
         log_printf(STATUS_REPORTS, "status", "Return command detected!\n");
         ++*caret;
-        node = TreeNode_new(N_TYPE_RETURN, {}, NULL, parse_expression(stack, caret));
+        node = TreeNode_new(N_TYPE_RET, {}, NULL, parse_expression(stack, caret));
     }
 
     return node;

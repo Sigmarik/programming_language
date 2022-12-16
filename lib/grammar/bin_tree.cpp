@@ -310,7 +310,7 @@ void TreeNode_export(const TreeNode* node, FILE* const file, int nesting) {
     fprintf(file, "{%s, ", NODE_NAMES[node->type]);
 
     if (!fprintf_value(file, node))
-        fprintf(file, "null");
+        fprintf(file, "NULL");
 
     fprintf(file, ", \n");
     TreeNode_export(node->left, file, nesting + 1);
@@ -422,6 +422,7 @@ void TreeNode_restore(const TreeNode* node, FILE* const file, int nesting) {
 
 //* This is to randomize node color so debug tree would look like a Christmas tree!
 static inline const char* node_color() {
+    if (!CHRISTMAS_MODE) return "white";
     int key = rand() % 100;
     if (key < 90) return "darkgreen";
     if (key < 93) return "gold";

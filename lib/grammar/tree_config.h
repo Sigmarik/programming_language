@@ -51,4 +51,6 @@ static const char* const OP_NAMES[] = {
 
 #undef EXPR_OPERATOR
 
+static bool CHRISTMAS_MODE = true;
+
 #endif

@@ -65,7 +65,7 @@ EXPR_OPERATOR(DIV, LEFT->value.dbl / RIGHT->value.dbl, {
     PRINT(")");
 })
 
-EXPR_OPERATOR(CMP_G, LEFT->value.dbl > RIGHT->value.dbl, {}, NO_DERIVATIVE, {
+EXPR_OPERATOR(GT, LEFT->value.dbl > RIGHT->value.dbl, {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
     COMPILE(LEFT);
     PUT("JMPG _cmp_G_label_%d\n", LABEL_ID);
@@ -82,7 +82,7 @@ EXPR_OPERATOR(CMP_G, LEFT->value.dbl > RIGHT->value.dbl, {}, NO_DERIVATIVE, {
     RESTORE(RIGHT);
     PRINT(")");
 })
-EXPR_OPERATOR(CMP_L, LEFT->value.dbl < RIGHT->value.dbl, {}, NO_DERIVATIVE, {
+EXPR_OPERATOR(LT, LEFT->value.dbl < RIGHT->value.dbl, {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
     COMPILE(LEFT);
     PUT("JMPL _cmp_L_label_%d\n", LABEL_ID);
@@ -100,7 +100,7 @@ EXPR_OPERATOR(CMP_L, LEFT->value.dbl < RIGHT->value.dbl, {}, NO_DERIVATIVE, {
     PRINT(")");
 })
 
-EXPR_OPERATOR(CMP_GE, LEFT->value.dbl > RIGHT->value.dbl - 0.0005, {}, NO_DERIVATIVE, {
+EXPR_OPERATOR(GEQ, LEFT->value.dbl > RIGHT->value.dbl - 0.0005, {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
     COMPILE(LEFT);
     PUT("JMPGE _cmp_GE_label_%d\n", LABEL_ID);
@@ -117,7 +117,7 @@ EXPR_OPERATOR(CMP_GE, LEFT->value.dbl > RIGHT->value.dbl - 0.0005, {}, NO_DERIVA
     RESTORE(RIGHT);
     PRINT(")");
 })
-EXPR_OPERATOR(CMP_LE, LEFT->value.dbl < RIGHT->value.dbl + 0.0005, {}, NO_DERIVATIVE, {
+EXPR_OPERATOR(LEQ, LEFT->value.dbl < RIGHT->value.dbl + 0.0005, {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
     COMPILE(LEFT);
     PUT("JMPLE _cmp_LE_label_%d\n", LABEL_ID);
@@ -135,7 +135,7 @@ EXPR_OPERATOR(CMP_LE, LEFT->value.dbl < RIGHT->value.dbl + 0.0005, {}, NO_DERIVA
     PRINT(")");
 })
 
-EXPR_OPERATOR(CMP_EQUAL, is_equal(LEFT->value.dbl, RIGHT->value.dbl), {}, NO_DERIVATIVE, {
+EXPR_OPERATOR(EQ, is_equal(LEFT->value.dbl, RIGHT->value.dbl), {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
     COMPILE(LEFT);
     PUT("JMPE _cmp_E_label_%d\n", LABEL_ID);
@@ -153,7 +153,7 @@ EXPR_OPERATOR(CMP_EQUAL, is_equal(LEFT->value.dbl, RIGHT->value.dbl), {}, NO_DER
     PRINT(")");
 })
 
-EXPR_OPERATOR(L_AND, !is_equal(LEFT->value.dbl, 0.0) && !is_equal(RIGHT->value.dbl, 0.0), {}, NO_DERIVATIVE, {
+EXPR_OPERATOR(AND, !is_equal(LEFT->value.dbl, 0.0) && !is_equal(RIGHT->value.dbl, 0.0), {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
     COMPILE(LEFT);
     PUT("MUL\n");
@@ -172,7 +172,7 @@ EXPR_OPERATOR(L_AND, !is_equal(LEFT->value.dbl, 0.0) && !is_equal(RIGHT->value.d
     RESTORE(RIGHT);
     PRINT(")");
 })
-EXPR_OPERATOR(L_OR, !is_equal(LEFT->value.dbl, 0.0) || !is_equal(RIGHT->value.dbl, 0.0), {}, NO_DERIVATIVE, {
+EXPR_OPERATOR(OR, !is_equal(LEFT->value.dbl, 0.0) || !is_equal(RIGHT->value.dbl, 0.0), {}, NO_DERIVATIVE, {
     int label_id_copy = LABEL_ID;
     ++LABEL_ID;
 

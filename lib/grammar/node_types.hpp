@@ -1,4 +1,4 @@
-NODE_TYPE(DEF_SEQ, {
+NODE_TYPE(DEFS, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
 }, {
@@ -14,7 +14,7 @@ NODE_TYPE(SEQ, {
     RESTORE(LEFT);
     RESTORE(RIGHT);
 })
-NODE_TYPE(RETURN, {
+NODE_TYPE(RET, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
     PUT("MOVE RCX  # Return RBX to its original state.\n");
@@ -89,6 +89,7 @@ NODE_TYPE(BLOCK, {
 NODE_TYPE(OP, {
     //* Operator compilation is defined in compilation function itself (file bin_tree.cpp)
 }, {})
+
 NODE_TYPE(ASS, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
