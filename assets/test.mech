@@ -1,20 +1,11 @@
 var __ = 0;
 
-def increment(value) {
-    var something = value;
-    var another_something = 0;
-    if (1000) {
-        return value + something;
-    }
-}
-
 def main() {
     var k_a = read();
     var k_b = read();
     var k_c = read();
 
     __ = print(k_a);
-    __ = print(root);
     __ = print(k_b);
     __ = print(k_c);
 
