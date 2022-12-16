@@ -15,9 +15,9 @@ Clean the project (linux):
 
 `...# make clean`
 
-Extract syntax tree from the file (linux):
+Compile and run the program (linux):
 
-`...# make run ARGS="program_source.mech destination.tree"`
+`...# make run FILE="program_source.mech"`
 
 Remove build folders (linux):
 
