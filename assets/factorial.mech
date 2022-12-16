@@ -1,0 +1,13 @@
+var __ = 0;
+
+def factor(num) {
+    if (num <= 1) {
+        return 1;
+    } else {
+        return factor(num - 1) * num;
+    };
+}
+
+def main() {
+    print(factor(read()));
+}

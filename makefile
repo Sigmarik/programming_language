@@ -61,11 +61,16 @@ asset:
 	mkdir -p $(BLD_FOLDER)
 	cp -r $(ASSET_FOLDER)/. $(BLD_FOLDER)
 
-test: tree binary execute
+test: asset tree binary execute
 
 execute:
 	cd build && ./assembler.out bin.instr
 	cd build && ./processor.out a.bin -I0
+
+run: asset
+	cd $(BLD_FOLDER) && exec ./$(FRONT_BLD_FULL_NAME) $(FILE)
+	cd $(BLD_FOLDER) && exec ./$(BACK_BLD_FULL_NAME)
+	make execute
 
 tree:
 	cd $(BLD_FOLDER) && exec ./$(FRONT_BLD_FULL_NAME) $(ARGS)
