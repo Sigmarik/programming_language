@@ -1,21 +1,5 @@
 var __ = 0;
 
-/*
-def sqrt(number) {
-    var left = 0;
-    var right = number;
-    while (right - left > 0.001) {
-        var mid = (left + right) / 2;
-        if (mid * mid <= number) {
-            left = mid;
-        } else {
-            right = mid;
-        };
-    };
-    return left;
-}
-*/
-
 def increment(value) {
     var something = value;
     var another_something = 0;
@@ -28,11 +12,6 @@ def main() {
     var k_a = read();
     var k_b = read();
     var k_c = read();
-
-    var inc = increment(k_b);
-    var root = sqrt(inc);
-
-    /*var root = increment(increment(k_b));*/
 
     __ = print(k_a);
     __ = print(root);

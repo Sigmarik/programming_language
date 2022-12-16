@@ -5,6 +5,12 @@ EXPR_OPERATOR(ADD, LEFT->value.dbl + RIGHT->value.dbl, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
     PUT("ADD\n");
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") + (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 EXPR_OPERATOR(SUB, LEFT->value.dbl - RIGHT->value.dbl, {
@@ -13,6 +19,12 @@ EXPR_OPERATOR(SUB, LEFT->value.dbl - RIGHT->value.dbl, {
     COMPILE(RIGHT);
     COMPILE(LEFT);
     PUT("SUB\n");
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") - (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 EXPR_OPERATOR(MUL, LEFT->value.dbl * RIGHT->value.dbl, {
@@ -27,6 +39,12 @@ EXPR_OPERATOR(MUL, LEFT->value.dbl * RIGHT->value.dbl, {
     COMPILE(RIGHT);
     PUT("MUL\n");
     PUT("DIV\n");
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") * (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 EXPR_OPERATOR(DIV, LEFT->value.dbl / RIGHT->value.dbl, {
@@ -39,6 +57,12 @@ EXPR_OPERATOR(DIV, LEFT->value.dbl / RIGHT->value.dbl, {
     PUT("PUSH 1000\n");
     PUT("MUL\n");
     PUT("DIV\n");
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") / (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 EXPR_OPERATOR(CMP_G, LEFT->value.dbl > RIGHT->value.dbl, {}, NO_DERIVATIVE, {
@@ -51,6 +75,12 @@ EXPR_OPERATOR(CMP_G, LEFT->value.dbl > RIGHT->value.dbl, {}, NO_DERIVATIVE, {
     PUT("PUSH 1000\n");
     PUT("HERE _cmp_G_label_%d_end_\n", LABEL_ID);
     ++LABEL_ID;
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") > (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 EXPR_OPERATOR(CMP_L, LEFT->value.dbl < RIGHT->value.dbl, {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
@@ -62,6 +92,12 @@ EXPR_OPERATOR(CMP_L, LEFT->value.dbl < RIGHT->value.dbl, {}, NO_DERIVATIVE, {
     PUT("PUSH 1000\n");
     PUT("HERE _cmp_L_label_%d_end_\n", LABEL_ID);
     ++LABEL_ID;
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") < (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 EXPR_OPERATOR(CMP_GE, LEFT->value.dbl > RIGHT->value.dbl - 0.0005, {}, NO_DERIVATIVE, {
@@ -74,6 +110,12 @@ EXPR_OPERATOR(CMP_GE, LEFT->value.dbl > RIGHT->value.dbl - 0.0005, {}, NO_DERIVA
     PUT("PUSH 1000\n");
     PUT("HERE _cmp_GE_label_%d_end_\n", LABEL_ID);
     ++LABEL_ID;
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") >= (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 EXPR_OPERATOR(CMP_LE, LEFT->value.dbl < RIGHT->value.dbl + 0.0005, {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
@@ -85,6 +127,12 @@ EXPR_OPERATOR(CMP_LE, LEFT->value.dbl < RIGHT->value.dbl + 0.0005, {}, NO_DERIVA
     PUT("PUSH 1000\n");
     PUT("HERE _cmp_LE_label_%d_end_\n", LABEL_ID);
     ++LABEL_ID;
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") <= (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 EXPR_OPERATOR(CMP_EQUAL, is_equal(LEFT->value.dbl, RIGHT->value.dbl), {}, NO_DERIVATIVE, {
@@ -97,6 +145,12 @@ EXPR_OPERATOR(CMP_EQUAL, is_equal(LEFT->value.dbl, RIGHT->value.dbl), {}, NO_DER
     PUT("PUSH 1000\n");
     PUT("HERE _cmp_E_label_%d_end_\n", LABEL_ID);
     ++LABEL_ID;
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") == (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 EXPR_OPERATOR(L_AND, !is_equal(LEFT->value.dbl, 0.0) && !is_equal(RIGHT->value.dbl, 0.0), {}, NO_DERIVATIVE, {
@@ -111,6 +165,12 @@ EXPR_OPERATOR(L_AND, !is_equal(LEFT->value.dbl, 0.0) && !is_equal(RIGHT->value.d
     PUT("PUSH 0\n");
     PUT("HERE _log_AND_label_%d_end_\n", LABEL_ID);
     ++LABEL_ID;
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") && (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 EXPR_OPERATOR(L_OR, !is_equal(LEFT->value.dbl, 0.0) || !is_equal(RIGHT->value.dbl, 0.0), {}, NO_DERIVATIVE, {
     int label_id_copy = LABEL_ID;
@@ -142,14 +202,27 @@ EXPR_OPERATOR(L_OR, !is_equal(LEFT->value.dbl, 0.0) || !is_equal(RIGHT->value.db
     PUT("HERE _log_OR_label_%d\n", label_id_copy);
     PUT("PUSH 0\n");
     PUT("HERE _log_OR_label_%d_end_\n", label_id_copy);
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") || (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 EXPR_OPERATOR(ASS, LEFT->value.dbl, {}, NO_DERIVATIVE, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
     VariableAddress address = GET_VARIABLE(node->value.name);
+    PUT("DUP\n");
     if (address.global)
         PUT("MOVE [%d]\n", address.address);
     else
         PUT("MOVE [RBX + %d]\n", address.address);
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") = (");
+    RESTORE(RIGHT);
+    PRINT(")");
 })

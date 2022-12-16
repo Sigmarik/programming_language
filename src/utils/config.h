@@ -22,6 +22,7 @@ static const size_t MAX_NAME_LENGTH = 1024;
 static const char DEFAULT_IN_FILE_NAME[] = "simple.mech";
 static const char DEFAULT_TREE_FILE_NAME[] = "out.tree";
 static const char DEFAULT_BINARY_FILE_NAME[] = "bin.instr";
+static const char DEFAULT_RESTORED_FILE_NAME[] = "source_code.mech";
 
 static const char STDLIB_NAME[] = "STDLIB.instr";
 #endif

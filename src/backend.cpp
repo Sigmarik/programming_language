@@ -1,7 +1,7 @@
 /**
- * @file main.c
+ * @file backend.cpp
  * @author Ilya Kudryashov (kudriashov.it@phystech.edu)
- * @brief Equation differentiator.
+ * @brief AST->assembler instructions translator.
  * @version 0.1
  * @date 2022-08-26
  * 
@@ -55,12 +55,6 @@ int main(const int argc, const char** argv) {
 
     LexStack lexemes = lexify(text);
     track_allocation(lexemes, LexStack_dtor);
-
-    for (size_t id = 0; id < lexemes.size; ++id) {
-        _log_printf(STATUS_REPORTS, "status", "Lexeme %s detected at char %d of line %d.\n",
-                    LEXEME_NAMES[(int)lexemes.buffer[id].type], 
-                    (int)lexemes.buffer[id].address.index, (int)lexemes.buffer[id].address.line);
-    }
 
     int caret = 0;
     TreeNode* tree = parse_program_tree(lexemes, &caret);

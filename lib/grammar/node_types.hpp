@@ -1,11 +1,18 @@
 NODE_TYPE(DEF_SEQ, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
+}, {
+    RESTORE(LEFT);
+    PRINT("\n");
+    RESTORE(RIGHT);
 })
 
 NODE_TYPE(SEQ, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
+}, {
+    RESTORE(LEFT);
+    RESTORE(RIGHT);
 })
 NODE_TYPE(RETURN, {
     COMPILE(LEFT);
@@ -15,6 +22,11 @@ NODE_TYPE(RETURN, {
     PUT("MOVE RBX\n");
     PUT("PUSH RCX\n");
     PUT("RET\n");
+}, {
+    PUT("return ");
+    RESTORE(LEFT);
+    RESTORE(RIGHT);
+    PRINT(";\n");
 })
 
 NODE_TYPE(NFUN, {
@@ -36,9 +48,16 @@ NODE_TYPE(NFUN, {
     COMPILE_NESTED(RIGHT);
     END_NAMESPACE();
     PUT("HERE %.*s__def__end__\n\n", (int)node->value.name.length, node->value.name.pointer);
+}, {
+    PUT("def %.*s(", (int)node->value.name.length, node->value.name.pointer);
+    RESTORE(LEFT);
+    PRINT(") ");
+    RESTORE(RIGHT);
+    PRINT("\n");
 })
 NODE_TYPE(NVAR, {
     PUT("# Declaration of the \"%.*s\" variable.\n", (int)node->value.name.length, node->value.name.pointer);
+    COMPILE(LEFT);
     COMPILE(RIGHT);
     ADD_NAME(node->value.name);
     VariableAddress address = GET_VARIABLE(node->value.name);
@@ -48,6 +67,11 @@ NODE_TYPE(NVAR, {
     else
         PUT("MOVE [RBX + %d]  # Value of %.*s.\n\n", address.address, 
             (int)node->value.name.length, node->value.name.pointer);
+}, {
+    PUT("var %.*s = ", (int)node->value.name.length, node->value.name.pointer);
+    RESTORE(LEFT);
+    RESTORE_NESTED(RIGHT);
+    PRINT(";\n");
 })
 
 NODE_TYPE(BLOCK, {
@@ -55,11 +79,16 @@ NODE_TYPE(BLOCK, {
     COMPILE_NESTED(LEFT);
     COMPILE_NESTED(RIGHT);
     END_NAMESPACE();
+}, {
+    PRINT("{\n");
+    RESTORE_NESTED(LEFT);
+    RESTORE_NESTED(RIGHT);
+    PUT("}");
 })
 
 NODE_TYPE(OP, {
     //* Operator compilation is defined in compilation function itself (file bin_tree.cpp)
-})
+}, {})
 NODE_TYPE(ASS, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
@@ -70,6 +99,11 @@ NODE_TYPE(ASS, {
     else
         PUT("MOVE [RBX + %d]  # Value of %.*s.\n\n", address.address, 
             (int)node->value.name.length, node->value.name.pointer);
+}, {
+    PUT("%.*s = ", (int)node->value.name.length, node->value.name.pointer);
+    RESTORE(LEFT);
+    RESTORE(RIGHT);
+    PRINT(";\n");
 })
 NODE_TYPE(VAR, {
     VariableAddress address = GET_VARIABLE(node->value.name);
@@ -79,14 +113,23 @@ NODE_TYPE(VAR, {
     else
         PUT("PUSH [RBX + %d]  # Value of %.*s.\n", address.address, 
             (int)node->value.name.length, node->value.name.pointer);
+}, {
+    PRINT("%.*s", (int)node->value.name.length, node->value.name.pointer);
 })
 NODE_TYPE(CONST, {
     PUT("PUSH %d\n", (int)(node->value.dbl * 1000));
+}, {
+    PRINT("%lg", node->value.dbl);
 })
 
 NODE_TYPE(IF, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
+}, {
+    PUT("if (");
+    RESTORE(LEFT);
+    PRINT(") ");
+    RESTORE(RIGHT);
 })
 NODE_TYPE(BRANCH, {
     int label_id_copy = LABEL_ID;
@@ -98,6 +141,13 @@ NODE_TYPE(BRANCH, {
     PUT("HERE _IF_label_%d\n", label_id_copy);
     COMPILE(RIGHT);
     PUT("HERE _IF_label_%d_end_\n\n", label_id_copy);
+}, {
+    RESTORE(LEFT);
+    if (RIGHT) {
+        PRINT(" else ");
+        RESTORE(RIGHT);
+    }
+    PRINT(";\n");
 })
 NODE_TYPE(WHILE, {
     int label_id_copy = LABEL_ID;
@@ -109,6 +159,12 @@ NODE_TYPE(WHILE, {
     COMPILE(RIGHT);
     PUT("JMP _WHILE_label_%d\n", label_id_copy);
     PUT("HERE _WHILE_label_%d_end_\n\n", label_id_copy);
+}, {
+    PUT("while %.*s(", (int)node->value.name.length, node->value.name.pointer);
+    RESTORE(LEFT);
+    PRINT(") ");
+    RESTORE(RIGHT);
+    PRINT(";\n");
 })
 
 NODE_TYPE(PARAM, {
@@ -120,15 +176,36 @@ NODE_TYPE(PARAM, {
     VariableAddress address = GET_VARIABLE(node->value.name);
     PUT("MOVE [RBX + %d]  # Value of parameter %.*s.\n\n", address.address, 
         (int)node->value.name.length, node->value.name.pointer);
+}, {
+    PRINT("%.*s", (int)node->value.name.length, node->value.name.pointer);
+    if (LEFT) {
+        PRINT(", ");
+        RESTORE(LEFT);
+    }
+    if (RIGHT) {
+        PRINT(", ");
+        RESTORE(RIGHT);
+    }
 })
 NODE_TYPE(CALL, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
 
     PUT("CALL %.*s__function__body__\n", (int)node->value.name.length, node->value.name.pointer);
+}, {
+    PRINT("%.*s(", (int)node->value.name.length, node->value.name.pointer);
+    RESTORE(LEFT);
+    RESTORE(RIGHT);
+    PRINT(")");
 })
 
 NODE_TYPE(ARG, {
     COMPILE(LEFT);
     COMPILE(RIGHT);
+}, {
+    RESTORE(LEFT);
+    if (RIGHT) {
+        PRINT(", ");
+        RESTORE(RIGHT);
+    }
 })

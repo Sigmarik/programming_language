@@ -13,11 +13,11 @@
 
 #include "tree_config.h"
 
-#define OP_SWITCH_END default:                                                                                          \
-        if (err_code) *err_code = EINVAL;                                                                               \
-        log_printf(ERROR_REPORTS, "error",                                                                              \
-            "Somehow Operation equation->value.op had an incorrect value of %d.\n", equation->value.op);                \
-        break;                                                                                                          \
+#define OP_SWITCH_END default:                                                                              \
+        if (err_code) *err_code = EINVAL;                                                                   \
+        log_printf(ERROR_REPORTS, "error",                                                                  \
+            "Somehow Operation equation->value.op had an incorrect value of %d.\n", equation->value.op);    \
+        break;                                                                                              \
 
 /**
  * @brief Print subtree to the .dot file.
@@ -163,12 +163,14 @@ void _TreeNode_dump_graph(const TreeNode* equation, unsigned int importance) {
     fputc('}', temp_file);
     fclose(temp_file);
 
-    _LOG_FAIL_CHECK_(!system("mkdir -p " TREE_LOG_ASSET_FOLD_NAME), "error", ERROR_REPORTS, return_clean(), NULL, EAGAIN);
+    _LOG_FAIL_CHECK_(!system("mkdir -p " TREE_LOG_ASSET_FOLD_NAME),
+                     "error", ERROR_REPORTS, return_clean(), NULL, EAGAIN);
 
     time_t raw_time = 0;
     time(&raw_time);
 
-    const char* pict_name = dynamic_sprintf(TREE_LOG_ASSET_FOLD_NAME "/pict%04ld_%ld.png", (long int)++PictCount, raw_time);
+    const char* pict_name = dynamic_sprintf(TREE_LOG_ASSET_FOLD_NAME "/pict%04ld_%ld.png",
+                                            (long int)++PictCount, raw_time);
     _LOG_FAIL_CHECK_(pict_name, "error", ERROR_REPORTS, return_clean(), NULL, EFAULT);
     track_allocation(pict_name, free_variable);
 
@@ -223,7 +225,8 @@ static inline TreeNode* eq_const(double value) {
 }
 
 #define NO_DERIVATIVE TreeNode_copy(equation)
-#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code) case OP_##name: return derivative;
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code, restoration_code) \
+    case OP_##name: return derivative;
 
 TreeNode* TreeNode_diff(const TreeNode* equation, const LimitedString var_name, int* const err_code) {
     if (!equation) return NULL;
@@ -359,9 +362,9 @@ static inline void compile_operator() {
 
 }
 
-#define NODE_TYPE(name, compile_code) case N_TYPE_##name: { {compile_code;} break; }
+#define NODE_TYPE(name, compile_code, restoration_code) case N_TYPE_##name: { {compile_code;} break; }
 
-#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code) \
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code, restoration_code) \
     case OP_##name: { {compilation_code;} break; }
 
 void TreeNode_compile(NameStack* var_names, const TreeNode* node, 
@@ -387,6 +390,33 @@ void TreeNode_compile(NameStack* var_names, const TreeNode* node,
 #undef EXPR_OPERATOR
 #undef NODE_TYPE
 
+#define RESTORE(node)        TreeNode_restore(node, file, nesting)
+#define RESTORE_NESTED(node) TreeNode_restore(node, file, nesting + 1)
+#define PRINT(...) fprintf(file, __VA_ARGS__)
+
+#define NODE_TYPE(name, compile_code, restoration_code) case N_TYPE_##name: { {restoration_code;} break; }
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code, restoration_code) \
+    case OP_##name: { {restoration_code;} break; }
+
+void TreeNode_restore(const TreeNode* node, FILE* const file, int nesting) {
+    if (!node) return;
+
+    if (node->type == N_TYPE_OP) {
+        switch(node->value.op) {
+            #include "operators.hpp"
+            default: break;
+        }
+        return;
+    }
+    switch(node->type) {
+        #include "node_types.hpp"
+        default: break;
+    }
+}
+
+#undef EXPR_OPERATOR
+#undef NODE_TYPE
+
 #undef LEFT
 #undef RIGHT
 
@@ -401,7 +431,8 @@ static inline const char* node_color() {
 }
 
 void recursive_graph_dump(const TreeNode* equation, FILE* file, int* const err_code) {
-    _LOG_FAIL_CHECK_(!(TreeNode_get_error(equation) & (~TREE_INV_CONNECTIONS)), "error", ERROR_REPORTS, return, err_code, EINVAL);
+    _LOG_FAIL_CHECK_(!(TreeNode_get_error(equation) & (~TREE_INV_CONNECTIONS)), 
+                     "error", ERROR_REPORTS, return, err_code, EINVAL);
     _LOG_FAIL_CHECK_(file, "error", ERROR_REPORTS, return, err_code, ENOENT);
 
     if (!equation || !file) return;
@@ -412,11 +443,13 @@ void recursive_graph_dump(const TreeNode* equation, FILE* file, int* const err_c
 
     if (equation->left) {
         recursive_graph_dump(equation->left, file);
-        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"saddlebrown\"]\n", equation, equation->left);
+        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"saddlebrown\"]\n", 
+                equation, equation->left);
     }
     if (equation->right) {
         recursive_graph_dump(equation->right, file);
-        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"saddlebrown\"]\n", equation, equation->right);
+        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"saddlebrown\"]\n", 
+                equation, equation->right);
     }
 }
 
@@ -428,7 +461,7 @@ void recursive_graph_dump(const TreeNode* equation, FILE* file, int* const err_c
 
 static inline double get_value(TreeNode* equation) { return equation->value.dbl; }
 
-#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code)     \
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code, restoration_code)     \
     case OP_##name: { equation->value.dbl = ( action ); break; }
 
 static void wrap_constants(TreeNode* equation) {
@@ -479,7 +512,7 @@ static inline bool is_constant(const TreeNode* node, const double value) {
 
 #define IS_CONST_V(node, value) is_constant(node, value)
 
-#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code)   \
+#define EXPR_OPERATOR(name, action, simplification, derivative, compilation_code, restoration_code)   \
     case OP_##name: { {simplification;} break; }
 
 static void rm_useless(TreeNode* equation) {

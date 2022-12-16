@@ -132,4 +132,13 @@ void TreeNode_export(const TreeNode* node, FILE* const file, int nesting = 0);
 void TreeNode_compile(NameStack* var_names, const TreeNode* node, 
                       FILE* const file, int nesting, int* label_count);
 
+/**
+ * @brief Restore source code of the program and write it to the file.
+ * 
+ * @param node subtree to restore
+ * @param file write source
+ * @param nesting number of tab-s to put before each print
+ */
+void TreeNode_restore(const TreeNode* node, FILE* const file, int nesting = 0);
+
 #endif

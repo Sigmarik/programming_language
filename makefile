@@ -38,7 +38,7 @@ FRONT_BLD_FULL_NAME = $(FRONT_BLD_NAME)$(BLD_SUFFIX)
 BACK_BLD_FULL_NAME = $(BACK_BLD_NAME)$(BLD_SUFFIX)
 INVERTER_BLD_FULL_NAME = $(INVERTER_BLD_NAME)$(BLD_SUFFIX)
 
-all: asset frontend backend
+all: asset frontend backend inverter
 
 LIB_OBJECTS = argparser.o logger.o debug.o alloc_tracker.o file_helper.o bin_tree.o speaker.o grammar.o util.o
 
@@ -61,7 +61,7 @@ asset:
 	mkdir -p $(BLD_FOLDER)
 	cp -r $(ASSET_FOLDER)/. $(BLD_FOLDER)
 
-test: asset tree binary execute
+test: asset tree binary execute restore
 
 execute:
 	cd build && ./assembler.out bin.instr
@@ -77,6 +77,9 @@ tree:
 
 binary:
 	cd $(BLD_FOLDER) && exec ./$(BACK_BLD_FULL_NAME) $(ARGS)
+
+restore:
+	cd $(BLD_FOLDER) && exec ./$(INVERTER_BLD_FULL_NAME) $(ARGS)
 
 install:
 	apt-get install espeak -y
