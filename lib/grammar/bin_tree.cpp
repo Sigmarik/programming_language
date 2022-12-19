@@ -442,15 +442,13 @@ void recursive_graph_dump(const TreeNode* equation, FILE* file, int* const err_c
     fprintf_value(file, equation);
     fprintf(file, "\"]\n");
 
-    if (equation->left) {
-        recursive_graph_dump(equation->left, file);
-        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"saddlebrown\"]\n", 
-                equation, equation->left);
-    }
-    if (equation->right) {
-        recursive_graph_dump(equation->right, file);
-        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"saddlebrown\"]\n", 
-                equation, equation->right);
+    TreeNode* children[] = {equation->left, equation->right};
+
+    for (int id = 0; id < (int)ARR_SIZE(children); ++id) {
+        if (!children[id]) continue;
+        recursive_graph_dump(children[id], file);
+        fprintf(file, "\tV%p -> V%p [arrowhead=\"none\", penwidth=2.5, color=\"%s\"]\n", 
+                equation, children[id], CHRISTMAS_MODE ? "saddlebrown" : "black");
     }
 }
 

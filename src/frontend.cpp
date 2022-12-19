@@ -53,17 +53,17 @@ int main(const int argc, const char** argv) {
     const char* text = read_whole(input_file_name);
     track_allocation(text, free_variable);
 
-    LexStack lexemes = lexify(text);
-    track_allocation(lexemes, LexStack_dtor);
+    LexStack tokens = tokenize(text);
+    track_allocation(tokens, TokStack_dtor);
 
-    for (size_t id = 0; id < lexemes.size; ++id) {
-        CharAddress address = lexemes.buffer[id].address;
-        _log_printf(STATUS_REPORTS, "status", "Lexeme %s at char %d of line %d.\n", 
-                    LEXEME_NAMES[lexemes.buffer[id].type], (int)address.index, (int)address.line);
+    for (size_t id = 0; id < tokens.size; ++id) {
+        CharAddress address = tokens.buffer[id].address;
+        _log_printf(STATUS_REPORTS, "status", "Tokeme %s at char %d of line %d.\n", 
+                    TOKEN_NAMES[tokens.buffer[id].type], (int)address.index, (int)address.line);
     }
 
     int caret = 0;
-    TreeNode* tree = parse_program(lexemes, &caret);
+    TreeNode* tree = parse_program(tokens, &caret);
     track_allocation(tree, TreeNode_dtor);
 
     TreeNode_dump(tree, ABSOLUTE_IMPORTANCE);

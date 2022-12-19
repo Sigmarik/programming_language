@@ -11,12 +11,29 @@ def discriminant(alpha, beta, gama) {
     return beta * beta - 4 * alpha * gama;
 }
 
+def solve_linear(coefficient, constant) {
+    return -constant / coefficient;
+}
+
 def main() {
     var k_a = read();
     var k_b = read();
     var k_c = read();
 
     var delta = discriminant(k_a, k_b, k_c);
+
+    if (k_a == 0) {
+        if (k_b == 0) {
+            if (k_c == 0) {
+                print(999.999);
+            } else {
+                print(0);
+            }
+        } else {
+            __ = print(solve_linear(k_b, k_c));
+        };
+        return 0;
+    };
 
     if (delta < 0) {
         __ = print(0);

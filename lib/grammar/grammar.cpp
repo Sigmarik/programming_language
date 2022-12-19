@@ -5,21 +5,21 @@
 
 #include "lib/util/dbg/debug.h"
 
-void LexStack_ctor(LexStack* stack, size_t start_size) {
+void TokStack_ctor(TokStack* stack, size_t start_size) {
     stack->capacity = start_size;
-    stack->buffer = (Lex*) calloc(stack->capacity, sizeof(*stack->buffer));
+    stack->buffer = (Token*) calloc(stack->capacity, sizeof(*stack->buffer));
 }
 
-void LexStack_dtor(LexStack* stack) {
+void TokStack_dtor(TokStack* stack) {
     free(stack->buffer);
     stack->capacity = 0;
     stack->size = 0;
 }
 
-void LexStack_push(LexStack* stack, Lex lexeme) {
+void TokStack_push(TokStack* stack, Token token) {
     if (stack->size + 1 >= stack->capacity) {
         stack->capacity *= 2;
-        Lex* new_buf = (Lex*)calloc(stack->capacity, sizeof(*stack->buffer));
+        Token* new_buf = (Token*)calloc(stack->capacity, sizeof(*stack->buffer));
         _LOG_FAIL_CHECK_(new_buf, "error", ERROR_REPORTS, return, &errno, ENOMEM);
         memcpy(new_buf, stack->buffer, stack->size * sizeof(*stack->buffer));
         free(stack->buffer);
@@ -28,20 +28,21 @@ void LexStack_push(LexStack* stack, Lex lexeme) {
             stack->buffer[id] = {};
         }
     }
-    stack->buffer[stack->size++] = lexeme;
+    stack->buffer[stack->size++] = token;
 }
 
 #define CUR_PTR iter
 
-#define LEXEME(name, condition, shift_formula, value_formula)                                       \
+#define TOKEN(name, condition, shift_formula, value_formula)                                        \
     else if ( condition ) {                                                                         \
         shift = (unsigned int)( shift_formula );                                                    \
-        LexStack_push(&stack, { .type = LEX_##name, .value = value_formula, .address = address });  \
+        TokStack_push(&stack, { .type = TOK_##name, .value = value_formula, .address = address });  \
     }
 
-LexStack lexify(const char* line) {
-    LexStack stack = {};
-    LexStack_ctor(&stack, 1);
+
+TokStack tokenize(const char* line) {
+    TokStack stack = {};
+    TokStack_ctor(&stack, 1);
 
     const char* iter = line;
 
@@ -69,29 +70,29 @@ LexStack lexify(const char* line) {
         if (!isprint(*iter) || isblank(*iter)) continue;
         else if (isdigit(*iter)) {
             const char* num_end = iter;
-            LexStack_push(&stack, { .type = LEX_NUM,
+            TokStack_push(&stack, { .type = TOK_NUM,
                                     .value = { .dbl = strtof(iter, (char**)&num_end) },
                                     .address = address });
             shift = (unsigned int)(num_end - iter);
         } 
 
-        #include "lexemes.hpp"
+        #include "tokens.hpp"
 
         else {
             log_dup(ERROR_REPORTS, "error", "Unknown symbol at location %d in line %d.\n",
                                             (int)address.index, (int)address.line);
         }
     }
-    LexStack_push(&stack, { .type = LEX_END, .address = address });
+    TokStack_push(&stack, { .type = TOK_END, .address = address });
 
     return stack;
 }
 
-#undef LEXEME
+#undef TOKEN
 
 
-#define CHECK_LEXEME(lexeme, message) do {          \
-    if (CURRENT.type != lexeme) CERROR(message);    \
+#define CHECK_TOKEN(token, message) do {            \
+    if (CURRENT.type != token) CERROR(message);     \
     ++*caret;                                       \
 } while (0)
 
@@ -102,7 +103,7 @@ LexStack lexify(const char* line) {
     return NULL;                                                    \
 }while (0)
 
-#define PARSING_FUNCTION(name) TreeNode* parse_##name(const LexStack stack, int* caret)
+#define PARSING_FUNCTION(name) TreeNode* parse_##name(const TokStack stack, int* caret)
 
 #define VALIDITY_CHECK() do {                                                               \
     _LOG_FAIL_CHECK_(stack.buffer, "error", ERROR_REPORTS, return NULL, &errno, EFAULT);    \
@@ -116,7 +117,7 @@ LexStack lexify(const char* line) {
 PARSING_FUNCTION(program) {
     VALIDITY_CHECK();
     TreeNode* node = parse_def_list(stack, caret);
-    if (CURRENT.type != LEX_END) {
+    if (CURRENT.type != TOK_END) {
         CERROR("Expected end of the program.\n");
     }
     return node;
@@ -138,11 +139,11 @@ PARSING_FUNCTION(def_list) {
 PARSING_FUNCTION(definition) {
     VALIDITY_CHECK();
     log_printf(STATUS_REPORTS, "status", "New definition!\n");
-    if (CURRENT.type == LEX_NVAR) {
+    if (CURRENT.type == TOK_NVAR) {
         TreeNode* node = parse_new_var(stack, caret);
-        CHECK_LEXEME(LEX_NEXT_STMT, "\';\' expected.\n");
+        CHECK_TOKEN(TOK_NEXT_STMT, "\';\' expected.\n");
         return node;
-    } else if (CURRENT.type == LEX_NDEF) {
+    } else if (CURRENT.type == TOK_NDEF) {
         return parse_new_func(stack, caret);
     } else {
         return NULL;
@@ -152,12 +153,12 @@ PARSING_FUNCTION(definition) {
 PARSING_FUNCTION(new_var) {
     VALIDITY_CHECK();
 
-    CHECK_LEXEME(LEX_NVAR, "Variable definition expected.\n");
+    CHECK_TOKEN(TOK_NVAR, "Variable definition expected.\n");
     LimitedString name = CURRENT.value.name;
 
-    CHECK_LEXEME(LEX_NAME, "Variable name expected.\n");
+    CHECK_TOKEN(TOK_NAME, "Variable name expected.\n");
 
-    CHECK_LEXEME(LEX_ASS, "Variable value expected.\n");
+    CHECK_TOKEN(TOK_ASS, "Variable value expected.\n");
     TreeNode* node = parse_expression(stack, caret);
 
     if (!node) return NULL;
@@ -172,29 +173,29 @@ PARSING_FUNCTION(expression) {
     return parse_expr_logic(stack, caret);
 }
 
-static inline bool is_comparison(LexType type) {
-    return type == LEX_CMP_EQ ||
-           type == LEX_GT ||
-           type == LEX_GEQ ||
-           type == LEX_LT ||
-           type == LEX_LEQ;
+static inline bool is_comparison(TokType type) {
+    return type == TOK_CMP_EQ ||
+           type == TOK_GT ||
+           type == TOK_GEQ ||
+           type == TOK_LT ||
+           type == TOK_LEQ;
 }
 
-static inline Operator lexeme_to_op(LexType type) {
+static inline Operator token_to_op(TokType type) {
     switch ((int) type) {
-    case LEX_CMP_EQ:    return OP_EQ;
-    case LEX_GT:     return OP_GT;
-    case LEX_GEQ:   return OP_GEQ;
-    case LEX_LT:     return OP_LT;
-    case LEX_LEQ:   return OP_LEQ;
-    case LEX_AND:       return OP_AND;
-    case LEX_LOR:       return OP_OR;
+    case TOK_CMP_EQ:    return OP_EQ;
+    case TOK_GT:        return OP_GT;
+    case TOK_GEQ:       return OP_GEQ;
+    case TOK_LT:        return OP_LT;
+    case TOK_LEQ:       return OP_LEQ;
+    case TOK_AND:       return OP_AND;
+    case TOK_LOR:       return OP_OR;
 
-    case LEX_ADD:       return OP_ADD;
-    case LEX_SUB:       return OP_SUB;
+    case TOK_ADD:       return OP_ADD;
+    case TOK_SUB:       return OP_SUB;
 
-    case LEX_MUL:       return OP_MUL;
-    case LEX_DIV:       return OP_DIV;
+    case TOK_MUL:       return OP_MUL;
+    case TOK_DIV:       return OP_DIV;
     default: return {};
     }
 }
@@ -205,14 +206,14 @@ PARSING_FUNCTION(expr_logic) {
     TreeNode* node = parse_expr_comparison(stack, caret);
     if (!node) CERROR("Expression expected.\n");
 
-    while (CURRENT.type == LEX_AND || CURRENT.type == LEX_LOR) {
-        LexType lexeme_type = CURRENT.type;
+    while (CURRENT.type == TOK_AND || CURRENT.type == TOK_LOR) {
+        TokType token_type = CURRENT.type;
         ++*caret;
 
         TreeNode* child = parse_expr_comparison(stack, caret);
         if (!child) CERROR("Expression expected.\n");
 
-        node = TreeNode_new(N_TYPE_OP, { .op = lexeme_to_op(lexeme_type) }, node, child);
+        node = TreeNode_new(N_TYPE_OP, { .op = token_to_op(token_type) }, node, child);
     }
 
     return node;
@@ -225,13 +226,13 @@ PARSING_FUNCTION(expr_comparison) {
     if (!node) CERROR("Expression expected.\n");
 
     while (is_comparison(CURRENT.type)) {
-        LexType lexeme_type = CURRENT.type;
+        TokType token_type = CURRENT.type;
         ++*caret;
 
         TreeNode* child = parse_expr_add(stack, caret);
         if (!child) CERROR("Expression expected.\n");
 
-        node = TreeNode_new(N_TYPE_OP, { .op = lexeme_to_op(lexeme_type) }, node, child);
+        node = TreeNode_new(N_TYPE_OP, { .op = token_to_op(token_type) }, node, child);
     }
 
     return node;
@@ -243,14 +244,14 @@ PARSING_FUNCTION(expr_add) {
     TreeNode* node = parse_expr_mult(stack, caret);
     if (!node) CERROR("Expression expected.\n");
 
-    while (CURRENT.type == LEX_ADD || CURRENT.type == LEX_SUB) {
-        LexType lexeme_type = CURRENT.type;
+    while (CURRENT.type == TOK_ADD || CURRENT.type == TOK_SUB) {
+        TokType token_type = CURRENT.type;
         ++*caret;
 
         TreeNode* child = parse_expr_mult(stack, caret);
         if (!child) CERROR("Expression expected.\n");
 
-        node = TreeNode_new(N_TYPE_OP, { .op = lexeme_to_op(lexeme_type) }, node, child);
+        node = TreeNode_new(N_TYPE_OP, { .op = token_to_op(token_type) }, node, child);
     }
 
     return node;
@@ -262,14 +263,14 @@ PARSING_FUNCTION(expr_mult) {
     TreeNode* node = parse_expr_brackets(stack, caret);
     if (!node) CERROR("Expression expected.\n");
 
-    while (CURRENT.type == LEX_MUL || CURRENT.type == LEX_DIV) {
-        LexType lexeme_type = CURRENT.type;
+    while (CURRENT.type == TOK_MUL || CURRENT.type == TOK_DIV) {
+        TokType token_type = CURRENT.type;
         ++*caret;
 
         TreeNode* child = parse_expr_brackets(stack, caret);
         if (!child) CERROR("Expression expected.\n");
 
-        node = TreeNode_new(N_TYPE_OP, { .op = lexeme_to_op(lexeme_type) }, node, child);
+        node = TreeNode_new(N_TYPE_OP, { .op = token_to_op(token_type) }, node, child);
     }
 
     return node;
@@ -280,10 +281,10 @@ PARSING_FUNCTION(expr_brackets) {
 
     TreeNode* node = NULL;
 
-    if (CURRENT.type == LEX_BRACK_OP) {
+    if (CURRENT.type == TOK_BRACK_OP) {
         ++*caret;
         node = parse_expression(stack, caret);
-        if (CURRENT.type != LEX_BRACK_CL) {
+        if (CURRENT.type != TOK_BRACK_CL) {
             TreeNode_dtor(&node);
             CERROR("Closing bracket expected.\n");
         }
@@ -300,21 +301,21 @@ PARSING_FUNCTION(expr_derivative) {
 
     TreeNode* node = NULL;
 
-    if (CURRENT.type == LEX_DIFF_BLOCK_OP) {
+    if (CURRENT.type == TOK_DIFF_BLOCK_OP) {
         ++*caret;
         node = parse_expression(stack, caret);
 
-        CHECK_LEXEME(LEX_DIFF_BLOCK_CL, "Closing square bracket expected.\n");
-        CHECK_LEXEME(LEX_BRACK_OP, "Differentiation variable expected.\n");
+        CHECK_TOKEN(TOK_DIFF_BLOCK_CL, "Closing square bracket expected.\n");
+        CHECK_TOKEN(TOK_BRACK_OP, "Differentiation variable expected.\n");
 
         LimitedString var_name = CURRENT.value.name;
-        CHECK_LEXEME(LEX_NAME, "Variable name expected.\n");
+        CHECK_TOKEN(TOK_NAME, "Variable name expected.\n");
 
         TreeNode* derivative = TreeNode_diff(node, var_name);
         TreeNode_dtor(&node);
         node = derivative;
 
-        CHECK_LEXEME(LEX_BRACK_CL, "Closing bracket expected.\n");
+        CHECK_TOKEN(TOK_BRACK_CL, "Closing bracket expected.\n");
     } else {
         node = parse_expr_elementary(stack, caret);
     }
@@ -327,14 +328,14 @@ PARSING_FUNCTION(expr_call) {
 
     TreeNode* node = NULL;
     LimitedString name = CURRENT.value.name;
-    CHECK_LEXEME(LEX_NAME, "Function name expected.\n");
-    CHECK_LEXEME(LEX_BRACK_OP, "Function arguments expected.\n");
+    CHECK_TOKEN(TOK_NAME, "Function name expected.\n");
+    CHECK_TOKEN(TOK_BRACK_OP, "Function arguments expected.\n");
 
     TreeNode* child = parse_arg_list(stack, caret);
 
     node = TreeNode_new(N_TYPE_CALL, { .name = name }, NULL, child);
 
-    CHECK_LEXEME(LEX_BRACK_CL, "Closing bracket expected.\n");
+    CHECK_TOKEN(TOK_BRACK_CL, "Closing bracket expected.\n");
 
     return node;
 }
@@ -342,12 +343,12 @@ PARSING_FUNCTION(expr_call) {
 PARSING_FUNCTION(arg_list) {
     VALIDITY_CHECK();
     
-    if (CURRENT.type == LEX_BRACK_CL) return NULL;
+    if (CURRENT.type == TOK_BRACK_CL) return NULL;
 
     TreeNode* node = parse_expression(stack, caret);
     if (!node) return NULL;
 
-    while (CURRENT.type == LEX_NEXT_ARG) {
+    while (CURRENT.type == TOK_NEXT_ARG) {
         ++*caret;
 
         TreeNode* child = parse_expression(stack, caret);
@@ -364,19 +365,19 @@ PARSING_FUNCTION(expr_elementary) {
     
     TreeNode* node = NULL;
 
-    if (CURRENT.type == LEX_NAME) {
-        if (stack.buffer[*caret + 1].type == LEX_BRACK_OP) {
+    if (CURRENT.type == TOK_NAME) {
+        if (stack.buffer[*caret + 1].type == TOK_BRACK_OP) {
             node = parse_expr_call(stack, caret);
         } else {
             node = TreeNode_new(N_TYPE_VAR, { .name = CURRENT.value.name }, NULL, NULL);
             ++*caret;
         }
-    } else if (CURRENT.type == LEX_NUM) {
+    } else if (CURRENT.type == TOK_NUM) {
         node = TreeNode_new(N_TYPE_CONST, { .dbl = CURRENT.value.dbl }, NULL, NULL);
         ++*caret;
-    } else if (CURRENT.type == LEX_SUB) {
+    } else if (CURRENT.type == TOK_SUB) {
         ++*caret;
-        if (CURRENT.type == LEX_NUM) {
+        if (CURRENT.type == TOK_NUM) {
             node = TreeNode_new(N_TYPE_CONST, { .dbl = -CURRENT.value.dbl }, NULL, NULL);
             ++*caret;
         } else {
@@ -394,24 +395,24 @@ PARSING_FUNCTION(new_func) {
 
     TreeNode* node = NULL;
 
-    CHECK_LEXEME(LEX_NDEF, "Function declaration expected.\n");
+    CHECK_TOKEN(TOK_NDEF, "Function declaration expected.\n");
 
     LimitedString name = CURRENT.value.name;
-    CHECK_LEXEME(LEX_NAME, "Function name expected.\n");
-    CHECK_LEXEME(LEX_BRACK_OP, "Parameter list expected.\n");
+    CHECK_TOKEN(TOK_NAME, "Function name expected.\n");
+    CHECK_TOKEN(TOK_BRACK_OP, "Parameter list expected.\n");
 
     TreeNode* child = parse_param_list(stack, caret);
 
     node = TreeNode_new(N_TYPE_NFUN, { .name = name }, child, NULL);
 
-    CHECK_LEXEME(LEX_BRACK_CL, "Closing bracket expected.\n");
+    CHECK_TOKEN(TOK_BRACK_CL, "Closing bracket expected.\n");
 
-    CHECK_LEXEME(LEX_BLOCK_BRACK_OP, "Function body expected.\n");
+    CHECK_TOKEN(TOK_BLOCK_BRACK_OP, "Function body expected.\n");
 
     TreeNode* body = parse_block(stack, caret);
     node->right = body;
 
-    CHECK_LEXEME(LEX_BLOCK_BRACK_CL, "Block end expected.\n");
+    CHECK_TOKEN(TOK_BLOCK_BRACK_CL, "Block end expected.\n");
 
     return node;
 }
@@ -421,11 +422,11 @@ PARSING_FUNCTION(param_list) {
     
     TreeNode* node = NULL;
 
-    if (CURRENT.type != LEX_NAME) return NULL;
+    if (CURRENT.type != TOK_NAME) return NULL;
     node = TreeNode_new(N_TYPE_PARAM, { .name = CURRENT.value.name }, NULL, NULL);
     ++*caret;
 
-    if (CURRENT.type == LEX_NEXT_ARG) {
+    if (CURRENT.type == TOK_NEXT_ARG) {
         ++*caret;
         node->right = parse_param_list(stack, caret);
     }
@@ -438,23 +439,23 @@ PARSING_FUNCTION(statement) {
 
     TreeNode* node = NULL;
 
-    if (CURRENT.type == LEX_NVAR) {
+    if (CURRENT.type == TOK_NVAR) {
         node = parse_new_var(stack, caret);
-    } else if (CURRENT.type == LEX_NAME && stack.buffer[*caret + 1].type == LEX_BRACK_OP) {
+    } else if (CURRENT.type == TOK_NAME && stack.buffer[*caret + 1].type == TOK_BRACK_OP) {
         node = parse_expr_call(stack, caret);
-    } else if (CURRENT.type == LEX_NAME && stack.buffer[*caret + 1].type == LEX_ASS) {
+    } else if (CURRENT.type == TOK_NAME && stack.buffer[*caret + 1].type == TOK_ASS) {
         node = parse_assignment(stack, caret);
-    } else if (CURRENT.type == LEX_BLOCK_BRACK_OP) {
+    } else if (CURRENT.type == TOK_BLOCK_BRACK_OP) {
         ++*caret;
 
         node = parse_block(stack, caret);
 
-        CHECK_LEXEME(LEX_BLOCK_BRACK_CL, "Block end expected.\n");
-    } else if (CURRENT.type == LEX_IF) {
+        CHECK_TOKEN(TOK_BLOCK_BRACK_CL, "Block end expected.\n");
+    } else if (CURRENT.type == TOK_IF) {
         node = parse_if_cond(stack, caret);
-    } else if (CURRENT.type == LEX_WHILE) {
+    } else if (CURRENT.type == TOK_WHILE) {
         node = parse_while_cond(stack, caret);
-    } else if (CURRENT.type == LEX_RET) {
+    } else if (CURRENT.type == TOK_RET) {
         log_printf(STATUS_REPORTS, "status", "Return command detected!\n");
         ++*caret;
         node = TreeNode_new(N_TYPE_RET, {}, NULL, parse_expression(stack, caret));
@@ -470,7 +471,7 @@ PARSING_FUNCTION(block) {
 
     TreeNode* node = TreeNode_new(N_TYPE_BLOCK, {}, NULL, parse_command_sequence(stack, caret));
 
-    log_printf(STATUS_REPORTS, "status", "Block content has ended on lexeme %s!\n", LEXEME_NAMES[CURRENT.type]);
+    log_printf(STATUS_REPORTS, "status", "Block content has ended on token %s!\n", TOKEN_NAMES[CURRENT.type]);
 
     return node;
 }
@@ -478,7 +479,7 @@ PARSING_FUNCTION(block) {
 PARSING_FUNCTION(command_sequence) {
     VALIDITY_CHECK();
     
-    if (CURRENT.type == LEX_BLOCK_BRACK_CL) return NULL;
+    if (CURRENT.type == TOK_BLOCK_BRACK_CL) return NULL;
 
     log_printf(STATUS_REPORTS, "status", "New statement!\n");
 
@@ -486,7 +487,7 @@ PARSING_FUNCTION(command_sequence) {
 
     node = parse_statement(stack, caret);
 
-    if (CURRENT.type == LEX_NEXT_STMT) {
+    if (CURRENT.type == TOK_NEXT_STMT) {
         ++*caret;
         TreeNode* next = parse_command_sequence(stack, caret);
         if (next) {
@@ -501,9 +502,9 @@ PARSING_FUNCTION(assignment) {
     VALIDITY_CHECK();
 
     LimitedString name = CURRENT.value.name;
-    CHECK_LEXEME(LEX_NAME, "Variable name expected.\n");
+    CHECK_TOKEN(TOK_NAME, "Variable name expected.\n");
 
-    CHECK_LEXEME(LEX_ASS,  "Assignment was expected.\n");
+    CHECK_TOKEN(TOK_ASS,  "Assignment was expected.\n");
 
     TreeNode* node = TreeNode_new(N_TYPE_ASS, { .name = name }, NULL, parse_expression(stack, caret));
 
@@ -512,24 +513,24 @@ PARSING_FUNCTION(assignment) {
 
 PARSING_FUNCTION(if_cond) {
     VALIDITY_CHECK();
-    CHECK_LEXEME(LEX_IF, "IF statement expected.\n");
-    CHECK_LEXEME(LEX_BRACK_OP, "Condition expected.\n");
+    CHECK_TOKEN(TOK_IF, "IF statement expected.\n");
+    CHECK_TOKEN(TOK_BRACK_OP, "Condition expected.\n");
 
     TreeNode* condition = parse_expression(stack, caret);
 
-    CHECK_LEXEME(LEX_BRACK_CL, "Closing bracket expected.\n");
+    CHECK_TOKEN(TOK_BRACK_CL, "Closing bracket expected.\n");
 
-    CHECK_LEXEME(LEX_BLOCK_BRACK_OP, "Block start expected.\n");
+    CHECK_TOKEN(TOK_BLOCK_BRACK_OP, "Block start expected.\n");
     TreeNode* true_block = parse_block(stack, caret);
-    CHECK_LEXEME(LEX_BLOCK_BRACK_CL, "Block end expected.\n");
+    CHECK_TOKEN(TOK_BLOCK_BRACK_CL, "Block end expected.\n");
 
     TreeNode* false_block = NULL;
 
-    if (CURRENT.type == LEX_ELSE) {
+    if (CURRENT.type == TOK_ELSE) {
         ++*caret;
-        CHECK_LEXEME(LEX_BLOCK_BRACK_OP, "Block start expected.\n");
+        CHECK_TOKEN(TOK_BLOCK_BRACK_OP, "Block start expected.\n");
         false_block = parse_block(stack, caret);
-        CHECK_LEXEME(LEX_BLOCK_BRACK_CL, "Block end expected.\n");
+        CHECK_TOKEN(TOK_BLOCK_BRACK_CL, "Block end expected.\n");
     }
     return TreeNode_new(N_TYPE_IF, {}, condition, TreeNode_new(N_TYPE_BRANCH, {}, true_block, false_block));
 }
@@ -537,14 +538,14 @@ PARSING_FUNCTION(if_cond) {
 PARSING_FUNCTION(while_cond) {
     VALIDITY_CHECK();
 
-    CHECK_LEXEME(LEX_WHILE, "While loop expected.\n");
-    CHECK_LEXEME(LEX_BRACK_OP, "Loop condition expected.\n");
+    CHECK_TOKEN(TOK_WHILE, "While loop expected.\n");
+    CHECK_TOKEN(TOK_BRACK_OP, "Loop condition expected.\n");
     TreeNode* condition = parse_expression(stack, caret);
-    CHECK_LEXEME(LEX_BRACK_CL, "Closing bracket expected.\n");
+    CHECK_TOKEN(TOK_BRACK_CL, "Closing bracket expected.\n");
 
-    CHECK_LEXEME(LEX_BLOCK_BRACK_OP, "Loop body expected.\n");
+    CHECK_TOKEN(TOK_BLOCK_BRACK_OP, "Loop body expected.\n");
     TreeNode* body = parse_block(stack, caret);
-    CHECK_LEXEME(LEX_BLOCK_BRACK_CL, "Loop body end expected.\n");
+    CHECK_TOKEN(TOK_BLOCK_BRACK_CL, "Loop body end expected.\n");
 
     return TreeNode_new(N_TYPE_WHILE, {}, condition, body);
 }
@@ -565,44 +566,44 @@ static inline Operator operator_by_name(LimitedString name) {
 
 PARSING_FUNCTION(program_tree) {
     VALIDITY_CHECK();
-    CHECK_LEXEME(LEX_BLOCK_BRACK_OP, "Expected opening figure bracket.\n");
+    CHECK_TOKEN(TOK_BLOCK_BRACK_OP, "Expected opening figure bracket.\n");
 
-    if (CURRENT.type == LEX_BLOCK_BRACK_CL) {
+    if (CURRENT.type == TOK_BLOCK_BRACK_CL) {
         ++*caret;
         return NULL;
     }
 
     NodeType type = node_by_name(CURRENT.value.name);
-    CHECK_LEXEME(LEX_NAME, "Node name expected.\n");
-    CHECK_LEXEME(LEX_NEXT_ARG, "Comma separator expected.\n");
+    CHECK_TOKEN(TOK_NAME, "Node name expected.\n");
+    CHECK_TOKEN(TOK_NEXT_ARG, "Comma separator expected.\n");
 
     NodeValue value = {};
 
     if (type == N_TYPE_OP) {
         value.op = operator_by_name(CURRENT.value.name);
-        CHECK_LEXEME(LEX_NAME, "Operator name expected.\n");
+        CHECK_TOKEN(TOK_NAME, "Operator name expected.\n");
     } else if (type == N_TYPE_CONST) {
         int inverter = 1;
-        if (CURRENT.type == LEX_SUB) {
+        if (CURRENT.type == TOK_SUB) {
             inverter = -1;
             ++*caret;
         }
         value.dbl = inverter * CURRENT.value.dbl;
-        CHECK_LEXEME(LEX_NUM, "Constant value expected.\n");
+        CHECK_TOKEN(TOK_NUM, "Constant value expected.\n");
     } else {
         value.name = CURRENT.value.name;
-        CHECK_LEXEME(LEX_NAME, "Node value expected.\n");
+        CHECK_TOKEN(TOK_NAME, "Node value expected.\n");
     }
 
-    CHECK_LEXEME(LEX_NEXT_ARG, "Comma separator expected.\n");
+    CHECK_TOKEN(TOK_NEXT_ARG, "Comma separator expected.\n");
 
     TreeNode* left = parse_program_tree(stack, caret);
 
-    CHECK_LEXEME(LEX_NEXT_ARG, "Comma separator expected.\n");
+    CHECK_TOKEN(TOK_NEXT_ARG, "Comma separator expected.\n");
 
     TreeNode* right = parse_program_tree(stack, caret);
 
-    CHECK_LEXEME(LEX_BLOCK_BRACK_CL, "Closing figure bracket expected.\n");
+    CHECK_TOKEN(TOK_BLOCK_BRACK_CL, "Closing figure bracket expected.\n");
 
     return TreeNode_new(type, value, left, right);
 }

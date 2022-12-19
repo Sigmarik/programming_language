@@ -14,59 +14,59 @@
 
 #include "bin_tree.h"
 
-#define LEXEME(name, condition, shift_formula, value_formula) LEX_##name,
+#define TOKEN(name, condition, shift_formula, value_formula) TOK_##name,
 
-enum LexType {
-    LEX_NUM,
-    #include "lexemes.hpp"
+enum TokType {
+    TOK_NUM,
+    #include "tokens.hpp"
 };
 
-#undef LEXEME
-#define LEXEME(name, condition, shift_formula, value_formula) "LEX_" #name,
+#undef TOKEN
+#define TOKEN(name, condition, shift_formula, value_formula) "TOK_" #name,
 
-static const char* LEXEME_NAMES[] = {
-    "LEX_NUM",
-    #include "lexemes.hpp"
+static const char* TOKEN_NAMES[] = {
+    "TOK_NUM",
+    #include "tokens.hpp"
 };
 
-#undef LEXEME
+#undef TOKEN
 
 struct CharAddress {
     unsigned int line = 0;
     unsigned int index = 0;
 };
 
-union LexValue {
+union TokValue {
     double dbl;
     LimitedString name;
 };
 
-struct Lex {
-    LexType type = LEX_END;
-    LexValue value = { .name = {} };
+struct Token {
+    TokType type = TOK_END;
+    TokValue value = { .name = {} };
     CharAddress address = {};
 };
 
-struct LexStack {
-    Lex* buffer = NULL;
+struct TokStack {
+    Token* buffer = NULL;
     size_t size = 0;
     size_t capacity = 0;
 };
 
-void LexStack_ctor(LexStack* stack, size_t start_size);
-void LexStack_dtor(LexStack* stack);
+void TokStack_ctor(TokStack* stack, size_t start_size);
+void TokStack_dtor(TokStack* stack);
 
-void LexStack_push(LexStack* stack, Lex lexeme);
+void TokStack_push(TokStack* stack, Token token);
 
 /**
- * @brief Turn source text of the program into a stack of lexemes.
+ * @brief Turn source text of the program into a stack of tokens.
  * 
  * @param line 
  * @return 
  */
-LexStack lexify(const char* line);
+TokStack tokenize(const char* line);
 
-#define PARSING_FUNCTION(name) TreeNode* parse_##name(const LexStack stack, int* caret);
+#define PARSING_FUNCTION(name) TreeNode* parse_##name(const TokStack stack, int* caret);
 
 PARSING_FUNCTION(program)
 

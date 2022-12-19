@@ -53,11 +53,11 @@ int main(const int argc, const char** argv) {
     const char* text = read_whole(input_file_name);
     track_allocation(text, free_variable);
 
-    LexStack lexemes = lexify(text);
-    track_allocation(lexemes, LexStack_dtor);
+    TokStack tokens = tokenize(text);
+    track_allocation(tokens, TokStack_dtor);
 
     int caret = 0;
-    TreeNode* tree = parse_program_tree(lexemes, &caret);
+    TreeNode* tree = parse_program_tree(tokens, &caret);
     track_allocation(tree, TreeNode_dtor);
 
     TreeNode_dump(tree, ABSOLUTE_IMPORTANCE);
