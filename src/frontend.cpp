@@ -53,12 +53,12 @@ int main(const int argc, const char** argv) {
     const char* text = read_whole(input_file_name);
     track_allocation(text, free_variable);
 
-    LexStack tokens = tokenize(text);
+    TokStack tokens = tokenize(text);
     track_allocation(tokens, TokStack_dtor);
 
     for (size_t id = 0; id < tokens.size; ++id) {
         CharAddress address = tokens.buffer[id].address;
-        _log_printf(STATUS_REPORTS, "status", "Tokeme %s at char %d of line %d.\n", 
+        _log_printf(STATUS_REPORTS, "status", "Token %s at char %d of line %d.\n", 
                     TOKEN_NAMES[tokens.buffer[id].type], (int)address.index, (int)address.line);
     }
 

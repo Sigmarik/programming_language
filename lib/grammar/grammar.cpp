@@ -174,7 +174,8 @@ PARSING_FUNCTION(expression) {
 }
 
 static inline bool is_comparison(TokType type) {
-    return type == TOK_CMP_EQ ||
+    return type == TOK_EQ ||
+           type == TOK_NEQ ||
            type == TOK_GT ||
            type == TOK_GEQ ||
            type == TOK_LT ||
@@ -183,7 +184,8 @@ static inline bool is_comparison(TokType type) {
 
 static inline Operator token_to_op(TokType type) {
     switch ((int) type) {
-    case TOK_CMP_EQ:    return OP_EQ;
+    case TOK_EQ:        return OP_EQ;
+    case TOK_NEQ:       return OP_NEQ;
     case TOK_GT:        return OP_GT;
     case TOK_GEQ:       return OP_GEQ;
     case TOK_LT:        return OP_LT;
@@ -385,6 +387,9 @@ PARSING_FUNCTION(expr_elementary) {
                                 TreeNode_new(N_TYPE_CONST, { .dbl = -1.0 }, NULL, NULL), 
                                 parse_expr_brackets(stack, caret));
         }
+    } else if (CURRENT.type == TOK_NOT) {
+        ++*caret;
+        return TreeNode_new(N_TYPE_NOT, {}, NULL, parse_expr_brackets(stack, caret));
     } else CERROR("Value was expected.\n");
 
     return node;

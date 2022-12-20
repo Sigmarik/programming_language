@@ -138,17 +138,35 @@ EXPR_OPERATOR(LEQ, LEFT->value.dbl < RIGHT->value.dbl + 0.0005, {}, NO_DERIVATIV
 EXPR_OPERATOR(EQ, is_equal(LEFT->value.dbl, RIGHT->value.dbl), {}, NO_DERIVATIVE, {
     COMPILE(RIGHT);
     COMPILE(LEFT);
-    PUT("JMPE _cmp_E_label_%d\n", LABEL_ID);
+    PUT("JMPE _cmp_EQ_label_%d\n", LABEL_ID);
     PUT("PUSH 0\n");
-    PUT("JMP _cmp_E_label_%d_end_\n", LABEL_ID);
-    PUT("HERE _cmp_E_label_%d\n", LABEL_ID);
+    PUT("JMP _cmp_EQ_label_%d_end_\n", LABEL_ID);
+    PUT("HERE _cmp_EQ_label_%d\n", LABEL_ID);
     PUT("PUSH 1000\n");
-    PUT("HERE _cmp_E_label_%d_end_\n", LABEL_ID);
+    PUT("HERE _cmp_EQ_label_%d_end_\n", LABEL_ID);
     ++LABEL_ID;
 }, {
     PRINT("(");
     RESTORE(LEFT);
     PRINT(") == (");
+    RESTORE(RIGHT);
+    PRINT(")");
+})
+
+EXPR_OPERATOR(NEQ, is_equal(LEFT->value.dbl, RIGHT->value.dbl), {}, NO_DERIVATIVE, {
+    COMPILE(RIGHT);
+    COMPILE(LEFT);
+    PUT("JMPE _cmp_NEQ_label_%d\n", LABEL_ID);
+    PUT("PUSH 1000\n");
+    PUT("JMP _cmp_NEQ_label_%d_end_\n", LABEL_ID);
+    PUT("HERE _cmp_NEQ_label_%d\n", LABEL_ID);
+    PUT("PUSH 0\n");
+    PUT("HERE _cmp_NEQ_label_%d_end_\n", LABEL_ID);
+    ++LABEL_ID;
+}, {
+    PRINT("(");
+    RESTORE(LEFT);
+    PRINT(") != (");
     RESTORE(RIGHT);
     PRINT(")");
 })

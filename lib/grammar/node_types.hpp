@@ -210,3 +210,24 @@ NODE_TYPE(ARG, {
         RESTORE(RIGHT);
     }
 })
+
+NODE_TYPE(NOT, {
+    int label_id_copy = LABEL_ID;
+    ++LABEL_ID;
+
+    COMPILE(LEFT);
+    COMPILE(RIGHT);
+
+    PUT("PUSH 0\n");
+    PUT("JMPE _log_NOT_label_%d\n", label_id_copy);
+    PUT("PUSH 0\n");
+    PUT("JMP _log_NOT_label_%d_end_\n", label_id_copy);
+    PUT("HERE _log_NOT_label_%d\n", label_id_copy);
+    PUT("PUSH 1000\n");
+    PUT("HERE _log_NOT_label_%d_end_\n", label_id_copy);
+}, {
+    PRINT("!(");
+    RESTORE(LEFT);
+    RESTORE(RIGHT);
+    PRINT(")");
+})
