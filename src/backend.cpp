@@ -23,6 +23,7 @@
 
 #include "lib/grammar/bin_tree.h"
 #include "lib/grammar/grammar.h"
+#include "lib/grammar/binary/bin_program.h"
 
 #include "utils/backend_utils.h"
 

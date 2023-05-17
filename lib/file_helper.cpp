@@ -82,7 +82,8 @@ char* read_whole(const char* fname) {
 
     if (!buffer) return 0;
 
-    read(fd, buffer, buf_size);
+    ssize_t read_result = read(fd, buffer, buf_size);
+    if (read_result == -1) return NULL;
 
     buffer[buf_size - 1] = '\0';
 

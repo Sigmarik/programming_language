@@ -1,6 +1,6 @@
 CC = g++
 
-CFLAGS = -I./ -D _DEBUG -ggdb3 -std=c++2a -O0 -Wall -Wextra -Weffc++\
+CFLAGS = -I./ -D _DEBUG -ggdb3 -std=c++2a -O2 -Wall -Wextra -Weffc++\
 -Waggressive-loop-optimizations -Wc++14-compat -Wmissing-declarations\
 -Wcast-align -Wchar-subscripts -Wconditionally-supported\
 -Wconversion -Wctor-dtor-privacy -Wempty-body -Wfloat-equal -Wformat-nonliteral\
@@ -40,101 +40,77 @@ INVERTER_BLD_FULL_NAME = $(INVERTER_BLD_NAME)$(BLD_SUFFIX)
 
 all: asset frontend backend inverter
 
-LIB_OBJECTS = argparser.o logger.o debug.o alloc_tracker.o file_helper.o bin_tree.o speaker.o grammar.o util.o
+LIB_OBJECTS = 	lib/util/argparser.o  				\
+				lib/util/dbg/logger.o            	\
+				lib/util/dbg/debug.o             	\
+				lib/alloc_tracker/alloc_tracker.o	\
+				lib/file_helper.o                	\
+				lib/grammar/bin_tree.o           	\
+				lib/speaker.o                    	\
+				lib/grammar/grammar.o            	\
+				lib/util/util.o                  	\
+				lib/grammar/binary/bin_program.o
 
-FRONTEND_OBJECTS = frontend.o frontend_utils.o common_utils.o $(LIB_OBJECTS)
+FRONTEND_OBJECTS = 	src/frontend.o					\
+					src/utils/frontend_utils.o   	\
+					src/utils/common_utils.o $(LIB_OBJECTS)
 frontend: $(FRONTEND_OBJECTS)
-	mkdir -p $(BLD_FOLDER)
-	$(CC) $(FRONTEND_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(FRONT_BLD_FULL_NAME)
+	@mkdir -p $(BLD_FOLDER)
+	@$(CC) $(FRONTEND_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(FRONT_BLD_FULL_NAME)
 
-BACKEND_OBJECTS = backend.o backend_utils.o common_utils.o $(LIB_OBJECTS)
+BACKEND_OBJECTS = 	src/backend.o				\
+					src/utils/backend_utils.o  	\
+					src/utils/common_utils.o $(LIB_OBJECTS)
 backend: $(BACKEND_OBJECTS)
-	mkdir -p $(BLD_FOLDER)
-	$(CC) $(BACKEND_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(BACK_BLD_FULL_NAME)
+	@mkdir -p $(BLD_FOLDER)
+	@$(CC) $(BACKEND_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(BACK_BLD_FULL_NAME)
 
-INVERTER_OBJECTS = inverter.o inverter_utils.o common_utils.o $(LIB_OBJECTS)
+INVERTER_OBJECTS = 	src/inverter.o				\
+					src/utils/inverter_utils.o	\
+					src/utils/common_utils.o $(LIB_OBJECTS)
 inverter: $(INVERTER_OBJECTS)
-	mkdir -p $(BLD_FOLDER)
-	$(CC) $(INVERTER_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(INVERTER_BLD_FULL_NAME)
+	@mkdir -p $(BLD_FOLDER)
+	@$(CC) $(INVERTER_OBJECTS) $(CFLAGS) -o $(BLD_FOLDER)/$(INVERTER_BLD_FULL_NAME)
 
 asset:
-	mkdir -p $(BLD_FOLDER)
-	cp -r $(ASSET_FOLDER)/. $(BLD_FOLDER)
+	@mkdir -p $(BLD_FOLDER)
+	@cp -r $(ASSET_FOLDER)/. $(BLD_FOLDER)
 
 test: asset tree binary execute restore
 
 execute:
-	cd build && ./assembler.out bin.instr
-	cd build && ./processor.out a.bin -I0
+	@cd build && ./assembler.out bin.instr
+	@cd build && ./processor.out a.bin -I0
 
 run: asset
-	cd $(BLD_FOLDER) && exec ./$(FRONT_BLD_FULL_NAME) $(FILE)
-	cd $(BLD_FOLDER) && exec ./$(BACK_BLD_FULL_NAME)
-	make execute
+	@cd $(BLD_FOLDER) && exec ./$(FRONT_BLD_FULL_NAME) $(FILE)
+	@cd $(BLD_FOLDER) && exec ./$(BACK_BLD_FULL_NAME)
+	@make execute
 
 tree:
-	cd $(BLD_FOLDER) && exec ./$(FRONT_BLD_FULL_NAME) $(ARGS)
+	@cd $(BLD_FOLDER) && exec ./$(FRONT_BLD_FULL_NAME) $(ARGS)
 
 binary:
-	cd $(BLD_FOLDER) && exec ./$(BACK_BLD_FULL_NAME) $(ARGS)
+	@cd $(BLD_FOLDER) && exec ./$(BACK_BLD_FULL_NAME) $(ARGS)
 
 restore:
-	cd $(BLD_FOLDER) && exec ./$(INVERTER_BLD_FULL_NAME) $(ARGS)
+	@cd $(BLD_FOLDER) && exec ./$(INVERTER_BLD_FULL_NAME) $(ARGS)
 
 install:
 	apt-get install espeak -y
 	sudo apt install graphviz
 
-frontend.o:
-	$(CC) $(CFLAGS) -c src/frontend.cpp
+LOGS_FOLDER = logs
+BUILD_LOG_NAME = build.log
+FLAGS = $(CFLAGS)
 
-backend.o:
-	$(CC) $(CFLAGS) -c src/backend.cpp
-
-inverter.o:
-	$(CC) $(CFLAGS) -c src/inverter.cpp
-
-frontend_utils.o:
-	$(CC) $(CFLAGS) -c src/utils/frontend_utils.cpp
-
-backend_utils.o:
-	$(CC) $(CFLAGS) -c src/utils/backend_utils.cpp
-
-inverter_utils.o:
-	$(CC) $(CFLAGS) -c src/utils/inverter_utils.cpp
-
-common_utils.o:
-	$(CC) $(CFLAGS) -c src/utils/common_utils.cpp
-
-alloc_tracker.o:
-	$(CC) $(CFLAGS) -c lib/alloc_tracker/alloc_tracker.cpp
-
-argparser.o:
-	$(CC) $(CFLAGS) -c lib/util/argparser.cpp
-
-logger.o:
-	$(CC) $(CFLAGS) -c lib/util/dbg/logger.cpp
-
-debug.o:
-	$(CC) $(CFLAGS) -c lib/util/dbg/debug.cpp
-
-file_helper.o:
-	$(CC) $(CFLAGS) -c lib/file_helper.cpp
-
-bin_tree.o:
-	$(CC) $(CFLAGS) -c lib/grammar/bin_tree.cpp
-
-speaker.o:
-	$(CC) $(CFLAGS) -c lib/speaker.cpp
-
-grammar.o:
-	$(CC) $(CFLAGS) -c lib/grammar/grammar.cpp
-
-util.o:
-	$(CC) $(CFLAGS) -c lib/util/util.cpp
+%.o: %.cpp
+	@echo Building file $^
+	@$(CC) $(FLAGS) -c $^ -o $@ > $(LOGS_FOLDER)/$(BUILD_LOG_NAME)
 
 clean:
-	rm -rf *.o
+	@find . -type f -name "*.o" -delete
+	@rm -rf $(LOGS_FOLDER)/*
 
 rmbld:
 	rm -rf $(BLD_FOLDER)
