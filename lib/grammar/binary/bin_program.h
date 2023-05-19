@@ -51,7 +51,7 @@ union InstructionArgument {
 
 struct Instruction {
     InstructionArgument argument;
-    u_int32_t position = UINT64_MAX;
+    u_int32_t position = UINT32_MAX;
     unsigned char code = INSTR_NONE;
 };
 
