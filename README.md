@@ -1,31 +1,16 @@
-# Equation differentiator & article generator
+# Compiled programming language
 ## Description & Purpose
-A set of programs for compiling C-style language into virtual processor instructions.
-## Building
+A set of programs for compiling C-style programming language into virtual processor instructions.
 
-Install necessary packages (ubuntu) *(will install espeak and graphviz)*:
+The project consists of three parts:
+ - Frontend transforms text file into abstract syntax tree of the program
+ - Inverter recreates source code of the program from AST, built by frontend part of the project
+ - Backend optimizes the tree and compiles it into text representations of the virtual processor instructions
+ - Assembler then transforms the code into binary file, which can be passed as a virtual processor input
 
-`...# make install`
+The description of programming language standard is still [work in progress].
 
-Compile the project (linux):
-
-`...# make`
-
-Clean the project (linux):
-
-`...# make clean`
-
-Compile and run the program (linux):
-
-`...# make run FILE="program_source.mech"`
-
-Remove build folders (linux):
-
-`...# make rmbld`
-
-Return project to its original state:
-
-`...# make rm`
+# Legal information
 
 ## Code of Conduct
 For information about our community goals read **CODE_OF_CONDUCT.md**.
